@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        arcade: ['Press Start 2P', 'monospace'],
+        display: ['Orbitron', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,6 +50,13 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        neon: {
+          green: "hsl(var(--neon-green))",
+          pink: "hsl(var(--neon-pink))",
+          blue: "hsl(var(--neon-blue))",
+          yellow: "hsl(var(--neon-yellow))",
+          red: "hsl(var(--neon-red))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
