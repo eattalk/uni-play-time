@@ -20,25 +20,31 @@ const GRAVITY = 0.45;
 const FLAP_FORCE = -7.5;
 const BIRD_X = 80;
 const STAR_TIME_BONUS = 2000;
-const UPGRADE_INTERVAL = 5; // seconds
+const UPGRADE_INTERVAL = 2; // 2초마다 진화
 
-// Evolution stages
 const BIRD_STAGES = [
-  { name: 'EGG', color1: '#ffee88', color2: '#ffcc44', size: 12 },
-  { name: 'CHICK', color1: '#ffee44', color2: '#ffaa00', size: 14 },
-  { name: 'BIRD', color1: '#ff8800', color2: '#ff4400', size: 16 },
-  { name: 'EAGLE', color1: '#ff4444', color2: '#cc0000', size: 18 },
-  { name: 'PHOENIX', color1: '#ff44ff', color2: '#8800ff', size: 20 },
-  { name: 'DRAGON', color1: '#00ffcc', color2: '#0088ff', size: 22 },
-  { name: 'GOD BIRD', color1: '#ffffff', color2: '#ffdd00', size: 24 },
+  { name: 'EGG', emoji: '🥚', color1: '#ffee88', color2: '#ffcc44', size: 12 },
+  { name: 'CHICK', emoji: '🐣', color1: '#ffee44', color2: '#ffaa00', size: 13 },
+  { name: 'BIRD', emoji: '🐦', color1: '#ff8800', color2: '#ff4400', size: 14 },
+  { name: 'EAGLE', emoji: '🦅', color1: '#ff4444', color2: '#cc0000', size: 15 },
+  { name: 'PHOENIX', emoji: '🔥', color1: '#ff44ff', color2: '#8800ff', size: 16 },
+  { name: 'DRAGON', emoji: '🐉', color1: '#00ffcc', color2: '#0088ff', size: 17 },
+  { name: 'GOD', emoji: '⭐', color1: '#ffffff', color2: '#ffdd00', size: 18 },
 ];
+
+// 점수 시스템: 파이프 통과 = elapsed 기반 점수 (동점 방지)
+// base 1점 + 경과시간 기반 보너스 + 별 보너스
+const calcPipeScore = (elapsedSec: number) => {
+  // 빨리 통과할수록 높은 점수 (시간이 지날수록 난이도 올라가니까 높은 점수)
+  return 1 + Math.floor(elapsedSec / 5);
+};
 
 const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<GamePhase>('intro');
   const [countdown, setCountdown] = useState(3);
   const gameRef = useRef({
-    bird: { x: BIRD_X, y: 250, vy: 0, radius: 14 } as Bird,
+    bird: { x: BIRD_X, y: 250, vy: 0, radius: 12 } as Bird,
     pipes: [] as Pipe[],
     stars: [] as Star[],
     particles: [] as Particle[],
@@ -48,9 +54,12 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     lastTimestamp: 0,
     playing: false,
     animationId: 0,
-    pipeTimer: 0,
+    pipeTimer: 100, // 시작 50프레임 후 첫 파이프
     lastStage: 0,
     cloudOffsetX: 0,
+    comboCount: 0,
+    lastPipeScoreText: '',
+    lastPipeScoreTimer: 0,
   });
 
   const getStage = (sec: number) => Math.min(Math.floor(sec / UPGRADE_INTERVAL), BIRD_STAGES.length - 1);
@@ -58,9 +67,9 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   const getDifficulty = (sec: number) => {
     const t = Math.min(sec / maxTime, 1);
     return {
-      pipeSpeed: 2.0 + t * 4.0,        // 2 → 6
-      pipeInterval: Math.max(60, 150 - sec * 1.5), // 150 → 60 frames
-      gapHeight: Math.max(70, 140 - sec * 1.2),     // 140 → 70
+      pipeSpeed: 2.0 + t * 4.5,
+      pipeInterval: Math.max(55, 120 - sec * 1.8),
+      gapHeight: Math.max(68, 140 - sec * 1.5),
     };
   };
 
@@ -79,8 +88,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         x, y,
         vx: (Math.random() - 0.5) * 10,
         vy: (Math.random() - 0.5) * 10,
-        life: 1,
-        color,
+        life: 1, color,
         size: Math.random() * 5 + 2,
       });
     }
@@ -107,16 +115,19 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const g = gameRef.current;
         g.playing = true;
         g.lastTimestamp = performance.now();
-        g.bird = { x: BIRD_X, y: 250, vy: 0, radius: 14 };
+        g.bird = { x: BIRD_X, y: 250, vy: 0, radius: 12 };
         g.pipes = [];
         g.stars = [];
         g.particles = [];
         g.score = 0;
         g.frameCount = 0;
         g.elapsedMs = 0;
-        g.pipeTimer = 0;
+        g.pipeTimer = 100; // 첫 파이프 빠르게
         g.lastStage = 0;
         g.cloudOffsetX = 0;
+        g.comboCount = 0;
+        g.lastPipeScoreText = '';
+        g.lastPipeScoreTimer = 0;
       } else {
         setCountdown(count);
         playCountdownBeep();
@@ -124,8 +135,9 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     }, 1000);
   }, []);
 
+  // ===== DRAWING HELPERS =====
+
   const drawBackground = (ctx: CanvasRenderingContext2D, W: number, H: number, frameCount: number, stage: number) => {
-    // Sky changes with stage
     const skyColors = [
       ['#0b0d2a', '#1a1040', '#0a0e1a'],
       ['#0b0d2a', '#1a1040', '#0a0e1a'],
@@ -143,12 +155,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // Stars
     for (let i = 0; i < 60; i++) {
       const sx = ((i * 97 + frameCount * 0.2) % (W + 20)) - 10;
       const sy = (i * 73 + Math.sin(i + frameCount * 0.02) * 3) % (H * 0.7);
       const brightness = 0.3 + Math.sin(frameCount * 0.05 + i) * 0.2;
-      ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+      ctx.fillStyle = `rgba(255,255,255,${brightness})`;
       ctx.fillRect(sx, sy, (i % 3 === 0) ? 2.5 : 1.5, (i % 3 === 0) ? 2.5 : 1.5);
     }
 
@@ -158,7 +169,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     groundGrad.addColorStop(1, '#060f08');
     ctx.fillStyle = groundGrad;
     ctx.fillRect(0, H - 30, W, 30);
-
     ctx.strokeStyle = '#2a7a30';
     ctx.lineWidth = 1;
     for (let i = 0; i < W; i += 6) {
@@ -181,7 +191,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.shadowColor = stageInfo.color1;
     ctx.shadowBlur = 15 + stage * 5;
 
-    // Body
     const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, r);
     grad.addColorStop(0, stageInfo.color1);
     grad.addColorStop(0.6, stageInfo.color2);
@@ -191,8 +200,9 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.ellipse(0, 0, r + 2, r, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Eye
     ctx.shadowBlur = 0;
+
+    // Eye
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.ellipse(r * 0.35, -r * 0.25, r * 0.28, r * 0.3, 0, 0, Math.PI * 2);
@@ -223,9 +233,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.ellipse(-4, 2, r * 0.7, r * 0.4, wingFlap, 0, Math.PI * 2);
     ctx.fill();
 
-    // Stage-specific decorations
     if (stage >= 3) {
-      // Crown/spikes
       ctx.fillStyle = stageInfo.color1;
       for (let i = 0; i < 3; i++) {
         ctx.beginPath();
@@ -236,7 +244,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       }
     }
     if (stage >= 5) {
-      // Flame trail
       ctx.globalAlpha = 0.6;
       for (let i = 0; i < 5; i++) {
         const fx = -r - 5 - i * 6;
@@ -249,7 +256,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.globalAlpha = 1;
     }
     if (stage >= 6) {
-      // Halo
       ctx.strokeStyle = '#ffdd0088';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -262,39 +268,26 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
   const drawPipe = (ctx: CanvasRenderingContext2D, pipe: Pipe, H: number, stage: number) => {
     const pipeColors = [
-      ['#1a8a40', '#22cc55', '#33ee66'],
-      ['#1a8a40', '#22cc55', '#33ee66'],
-      ['#2a6a8a', '#33aacc', '#44ccee'],
-      ['#6a2a8a', '#aa33cc', '#cc44ee'],
-      ['#8a2a2a', '#cc3333', '#ee4444'],
-      ['#2a8a6a', '#33ccaa', '#44eecc'],
-      ['#8a8a2a', '#cccc33', '#eeee44'],
+      ['#1a8a40', '#33ee66'], ['#1a8a40', '#33ee66'],
+      ['#2a6a8a', '#44ccee'], ['#6a2a8a', '#cc44ee'],
+      ['#8a2a2a', '#ee4444'], ['#2a8a6a', '#44eecc'],
+      ['#8a8a2a', '#eeee44'],
     ];
     const pc = pipeColors[stage] || pipeColors[0];
-
     const gradient1 = ctx.createLinearGradient(pipe.x, 0, pipe.x + pipe.width, 0);
     gradient1.addColorStop(0, pc[0]);
-    gradient1.addColorStop(0.5, pc[2]);
+    gradient1.addColorStop(0.5, pc[1]);
     gradient1.addColorStop(1, pc[0]);
 
-    // Top pipe
     ctx.fillStyle = gradient1;
     ctx.fillRect(pipe.x, 0, pipe.width, pipe.gapY);
-    const capGrad = ctx.createLinearGradient(pipe.x - 5, 0, pipe.x + pipe.width + 5, 0);
-    capGrad.addColorStop(0, pc[0]);
-    capGrad.addColorStop(0.5, pc[2]);
-    capGrad.addColorStop(1, pc[0]);
-    ctx.fillStyle = capGrad;
     ctx.fillRect(pipe.x - 5, pipe.gapY - 18, pipe.width + 10, 18);
 
-    // Bottom pipe
     const bottomY = pipe.gapY + pipe.gapHeight;
     ctx.fillStyle = gradient1;
     ctx.fillRect(pipe.x, bottomY, pipe.width, H - 30 - bottomY);
-    ctx.fillStyle = capGrad;
     ctx.fillRect(pipe.x - 5, bottomY, pipe.width + 10, 18);
 
-    // Highlight
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.fillRect(pipe.x + 8, 0, 6, pipe.gapY);
     ctx.fillRect(pipe.x + 8, bottomY, 6, H - 30 - bottomY);
@@ -316,10 +309,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.lineTo(Math.cos(innerA) * (star.radius * 0.4), Math.sin(innerA) * (star.radius * 0.4));
     }
     ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(0, 0, star.radius * 0.25, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#00ffcc';
@@ -354,14 +343,190 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.font = 'bold 16px "Orbitron", monospace';
     ctx.fillText(`★ ${g.score}`, W / 2, 29);
 
-    // Stage name
     ctx.textAlign = 'right';
     ctx.fillStyle = BIRD_STAGES[stage].color1;
     ctx.font = 'bold 11px "Orbitron", monospace';
-    ctx.fillText(BIRD_STAGES[stage].name, W - 10, 29);
+    ctx.fillText(`${BIRD_STAGES[stage].emoji} ${BIRD_STAGES[stage].name}`, W - 10, 29);
+
+    // Score popup
+    if (g.lastPipeScoreTimer > 0) {
+      const alpha = Math.min(1, g.lastPipeScoreTimer / 30);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 18px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      const popY = g.bird.y - 30 - (60 - g.lastPipeScoreTimer);
+      ctx.fillText(g.lastPipeScoreText, g.bird.x, popY);
+      ctx.globalAlpha = 1;
+    }
   };
 
-  // Main game loop
+  // ===== INTRO SCREEN DRAWING =====
+  const drawIntroCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // Background
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+    skyGrad.addColorStop(0, '#0b0d2a');
+    skyGrad.addColorStop(0.5, '#1a1040');
+    skyGrad.addColorStop(1, '#0a0e1a');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Title
+    ctx.fillStyle = '#00ff88';
+    ctx.font = 'bold 22px "Orbitron", monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 15;
+    ctx.fillText('FLAPPY EVOLUTION', W / 2, 50);
+    ctx.shadowBlur = 0;
+
+    // --- Visual instructions ---
+    let y = 85;
+    const lineH = 68;
+
+    // 1. TAP to flap - show bird + arrow
+    ctx.fillStyle = '#ffffff99';
+    ctx.font = '12px monospace';
+    ctx.fillText('TAP / SPACE to fly up!', W / 2, y);
+    y += 18;
+    // Draw mini bird
+    const bx = W / 2 - 40;
+    const by = y + 10;
+    ctx.fillStyle = '#ffaa00';
+    ctx.beginPath();
+    ctx.arc(bx, by, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(bx + 4, by - 2, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // Arrow up
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bx, by - 12);
+    ctx.lineTo(bx, by - 28);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(bx - 5, by - 23);
+    ctx.lineTo(bx, by - 28);
+    ctx.lineTo(bx + 5, by - 23);
+    ctx.stroke();
+    // Tap hand
+    ctx.font = '20px sans-serif';
+    ctx.fillText('👆', bx + 30, by + 6);
+    y += lineH - 10;
+
+    // 2. Dodge pipes
+    ctx.fillStyle = '#ffffff99';
+    ctx.font = '12px monospace';
+    ctx.fillText('Dodge the pipes!', W / 2, y);
+    y += 18;
+    // Mini pipes
+    const px = W / 2 - 15;
+    const py = y - 5;
+    ctx.fillStyle = '#22cc55';
+    ctx.fillRect(px, py - 30, 30, 30); // top
+    ctx.fillRect(px, py + 25, 30, 30); // bottom
+    // Gap arrow
+    ctx.strokeStyle = '#ffdd00';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(px - 20, py + 12);
+    ctx.lineTo(px + 50, py + 12);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Bird going through
+    ctx.fillStyle = '#ffaa00';
+    ctx.beginPath();
+    ctx.arc(px - 10, py + 12, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#00ff88';
+    ctx.font = '11px monospace';
+    ctx.fillText('+score', px + 60, py + 16);
+    y += lineH;
+
+    // 3. Collect stars
+    ctx.fillStyle = '#ffffff99';
+    ctx.font = '12px monospace';
+    ctx.fillText('Collect ⭐ = time -2s!', W / 2, y);
+    y += 18;
+    // Star
+    ctx.fillStyle = '#ffee44';
+    ctx.shadowColor = '#ffdd00';
+    ctx.shadowBlur = 10;
+    ctx.font = '24px sans-serif';
+    ctx.fillText('⭐', W / 2 - 20, y + 15);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#00ffcc';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText('→ ⏱-2s', W / 2 + 15, y + 12);
+    y += lineH - 5;
+
+    // 4. Evolution every 2s
+    ctx.fillStyle = '#ffffff99';
+    ctx.font = '12px monospace';
+    ctx.fillText('Evolve every 2 seconds!', W / 2, y);
+    y += 18;
+    // Evolution chain
+    const stages = ['🥚', '🐣', '🐦', '🦅', '🔥', '🐉', '⭐'];
+    const startX = W / 2 - (stages.length * 22) / 2;
+    ctx.font = '16px sans-serif';
+    stages.forEach((emoji, i) => {
+      ctx.fillText(emoji, startX + i * 22, y + 12);
+      if (i < stages.length - 1) {
+        ctx.fillStyle = '#ff44ff';
+        ctx.font = '10px monospace';
+        ctx.fillText('→', startX + i * 22 + 14, y + 10);
+        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#ffffff99';
+      }
+    });
+    y += lineH - 10;
+
+    // 5. Hit pipe = game over
+    ctx.fillStyle = '#ff4444';
+    ctx.font = '12px monospace';
+    ctx.fillText('💀 Hit pipe = GAME OVER!', W / 2, y);
+    y += 22;
+    ctx.fillStyle = '#ff888888';
+    ctx.font = '10px monospace';
+    ctx.fillText('Speed increases over time!', W / 2, y);
+
+    // TAP TO START button
+    y = H - 60;
+    ctx.fillStyle = '#00ff88';
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 15;
+    ctx.font = 'bold 16px "Orbitron", monospace';
+    const pulse = 0.8 + Math.sin(Date.now() * 0.005) * 0.2;
+    ctx.globalAlpha = pulse;
+    ctx.fillText('[ TAP TO START ]', W / 2, y);
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }, []);
+
+  // Intro animation loop
+  useEffect(() => {
+    if (phase !== 'intro') return;
+    let animId = 0;
+    const animate = () => {
+      drawIntroCanvas();
+      animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [phase, drawIntroCanvas]);
+
+  // ===== MAIN GAME LOOP =====
   useEffect(() => {
     if (phase !== 'playing') return;
     const canvas = canvasRef.current;
@@ -395,7 +560,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       const stage = getStage(elapsedSec);
       const diff = getDifficulty(elapsedSec);
 
-      // Stage upgrade sound
+      // Stage upgrade
       if (stage > g.lastStage) {
         g.lastStage = stage;
         playPowerUpSound();
@@ -403,22 +568,23 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         g.bird.radius = BIRD_STAGES[stage].size;
       }
 
+      // Score popup timer
+      if (g.lastPipeScoreTimer > 0) g.lastPipeScoreTimer--;
+
       // Physics
       g.bird.vy += GRAVITY;
       g.bird.y += g.bird.vy;
 
-      // Ceiling
       if (g.bird.y - g.bird.radius < 0) {
         g.bird.y = g.bird.radius;
         g.bird.vy = 0;
       }
-      // Floor - just sit on ground, no death
       if (g.bird.y + g.bird.radius > H - 30) {
         g.bird.y = H - 30 - g.bird.radius;
         g.bird.vy = 0;
       }
 
-      // Generate pipes
+      // Pipes
       g.pipeTimer++;
       if (g.pipeTimer >= diff.pipeInterval) {
         g.pipeTimer = 0;
@@ -426,13 +592,10 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const gapY = Math.random() * (H - 30 - gapH - 80) + 40;
         g.pipes.push({ x: W, gapY, gapHeight: gapH, width: 50, passed: false });
 
-        if (Math.random() < 0.5) {
+        if (Math.random() < 0.45) {
           g.stars.push({
-            x: W + 25,
-            y: gapY + gapH / 2,
-            radius: 10,
-            collected: false,
-            angle: 0,
+            x: W + 25, y: gapY + gapH / 2,
+            radius: 10, collected: false, angle: 0,
           });
         }
       }
@@ -442,27 +605,33 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         p.x -= diff.pipeSpeed;
         if (!p.passed && p.x + p.width < g.bird.x) {
           p.passed = true;
-          g.score += 1;
+          g.comboCount++;
+          const pipeScore = calcPipeScore(elapsedSec);
+          const comboMultiplier = Math.min(g.comboCount, 5);
+          const totalScore = pipeScore * comboMultiplier;
+          g.score += totalScore;
+          g.lastPipeScoreText = `+${totalScore}${comboMultiplier > 1 ? ` x${comboMultiplier}` : ''}`;
+          g.lastPipeScoreTimer = 60;
           playScoreSound();
           spawnParticles(g.bird.x, g.bird.y, '#00ff88', 8);
         }
       });
       g.pipes = g.pipes.filter(p => p.x + p.width > -10);
 
-      // Update stars
+      // Stars
       g.stars.forEach(s => { s.x -= diff.pipeSpeed; s.angle += 0.05; });
       g.stars = g.stars.filter(s => s.x > -20 && !s.collected);
 
-      // Update particles
+      // Particles
       g.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= 0.03; });
       g.particles = g.particles.filter(p => p.life > 0);
 
-      // Collision: bird <-> pipes → game over
+      // Collision: bird <-> pipes
       for (const p of g.pipes) {
         if (g.bird.x + g.bird.radius > p.x && g.bird.x - g.bird.radius < p.x + p.width) {
           if (g.bird.y - g.bird.radius < p.gapY || g.bird.y + g.bird.radius > p.gapY + p.gapHeight) {
             playHitSound();
-            spawnParticles(g.bird.x, g.bird.y, '#ff4444', 20);
+            spawnParticles(g.bird.x, g.bird.y, '#ff4444', 25);
             endGame();
             return;
           }
@@ -477,9 +646,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         if (Math.sqrt(dx * dx + dy * dy) < g.bird.radius + s.radius) {
           s.collected = true;
           g.elapsedMs = Math.max(0, g.elapsedMs - STAR_TIME_BONUS);
-          g.score += 5;
+          g.score += 10;
           playStarSound();
-          spawnParticles(s.x, s.y, '#ffee44', 20);
+          spawnParticles(s.x, s.y, '#ffee44', 25);
+          g.lastPipeScoreText = '⭐ +10 & -2s!';
+          g.lastPipeScoreTimer = 80;
         }
       });
 
@@ -530,28 +701,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         style={{ imageRendering: 'pixelated' }}
       />
 
-      {phase === 'intro' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/90 z-10">
-          <div className="text-center p-8 max-w-sm">
-            <h1 className="text-2xl font-arcade text-neon-green mb-6">FLAPPY EVOLUTION</h1>
-            <div className="text-left text-sm text-foreground/80 space-y-3 mb-8 font-display">
-              <p>🐦 <span className="text-neon-yellow">TAP or SPACE</span> to flap and fly</p>
-              <p>⭐ Collect <span className="text-neon-yellow">STARS</span> to reduce time by 2s!</p>
-              <p>🔥 Every 5s your bird <span className="text-neon-pink">EVOLVES!</span></p>
-              <p>💀 Hit a pipe = <span className="text-neon-pink">GAME OVER!</span></p>
-              <p>📈 Speed & difficulty increase over time!</p>
-              <p>🏁 Survive as long as you can!</p>
-            </div>
-            <button
-              onClick={startCountdown}
-              className="font-arcade text-sm text-primary-foreground bg-primary px-6 py-3 rounded-lg glow-green animate-pulse"
-            >
-              TAP TO START
-            </button>
-          </div>
-        </div>
-      )}
-
       {phase === 'countdown' && (
         <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
           <span className="text-8xl font-arcade text-neon-green animate-ping">{countdown}</span>
@@ -564,7 +713,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
             <h2 className="text-3xl font-arcade text-neon-pink mb-4">GAME OVER</h2>
             <p className="text-xl font-display text-neon-yellow">Score: {gameRef.current.score}</p>
             <p className="text-sm font-display text-muted-foreground mt-2">
-              Stage: {BIRD_STAGES[getStage(gameRef.current.elapsedMs / 1000)].name}
+              {BIRD_STAGES[getStage(gameRef.current.elapsedMs / 1000)].emoji} {BIRD_STAGES[getStage(gameRef.current.elapsedMs / 1000)].name}
             </p>
             <p className="text-sm font-display text-muted-foreground mt-1">
               {formatTime(gameRef.current.elapsedMs)}
