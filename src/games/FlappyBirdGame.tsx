@@ -103,7 +103,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         g.bird = { x: BIRD_X, y: 250, vy: 0, radius: 13 };
         g.pipes = []; g.stars = []; g.particles = [];
         g.score = 0; g.pipesPassed = 0; g.stage = 0;
-        g.frameCount = 0; g.elapsedMs = 0; g.pipeTimer = 100;
+        g.frameCount = 0; g.elapsedMs = 0; g.pipeTimer = 0;
         g.cloudOffsetX = 0; g.comboCount = 0;
         g.scorePopText = ''; g.scorePopTimer = 0; g.evolveFlashTimer = 0;
       } else { setCountdown(count); playCountdownBeep(); }
@@ -361,7 +361,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       frame++;
 
       // Bird auto-flap
-      if (frame % 38 === 0) demoBirdVy = -5;
+      if (frame % 32 === 0) demoBirdVy = -6.5;
       demoBirdVy += 0.28;
       demoBirdY += demoBirdVy;
       if (demoBirdY > H - 60) { demoBirdY = H - 60; demoBirdVy = 0; }
@@ -672,8 +672,18 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         style={{ imageRendering: 'pixelated' }}
       />
       {phase === 'countdown' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-          <span className="text-8xl font-arcade text-neon-green animate-ping">{countdown}</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
+          <div
+            key={countdown}
+            className="text-[120px] font-arcade text-neon-green leading-none"
+            style={{
+              textShadow: '0 0 30px #00ff88, 0 0 60px #00ff88',
+              animation: 'ping 0.9s ease-out forwards',
+            }}
+          >
+            {countdown}
+          </div>
+          <p className="text-neon-green/60 font-arcade text-sm mt-6 tracking-widest">GET READY</p>
         </div>
       )}
       {phase === 'gameover' && (
