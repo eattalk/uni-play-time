@@ -16,8 +16,8 @@ interface Pipe { x: number; gapY: number; gapHeight: number; width: number; pass
 interface Star { x: number; y: number; radius: number; collected: boolean; angle: number; }
 interface Particle { x: number; y: number; vx: number; vy: number; life: number; color: string; size: number; }
 
-const GRAVITY = 0.45;
-const FLAP_FORCE = -7.5;
+const GRAVITY = 0.28;
+const FLAP_FORCE = -6.0;
 const BIRD_X = 80;
 const STAR_TIME_BONUS = 2000;
 const PIPES_PER_EVOLUTION = 2;
@@ -360,24 +360,23 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     const introLoop = () => {
       frame++;
 
-      // Auto-play demo
-      // Bird flaps periodically
-      if (frame % 40 === 0) demoBirdVy = -5;
-      demoBirdVy += 0.3;
+      // Bird auto-flap
+      if (frame % 38 === 0) demoBirdVy = -5;
+      demoBirdVy += 0.28;
       demoBirdY += demoBirdVy;
       if (demoBirdY > H - 60) { demoBirdY = H - 60; demoBirdVy = 0; }
       if (demoBirdY < 40) { demoBirdY = 40; demoBirdVy = 0; }
 
       // Move pipes
       demoPipes.forEach(p => {
-        p.x -= 1.2;
+        p.x -= 1.5;
         if (p.x < -60) { p.x = W + 20; p.gapY = 100 + Math.random() * 200; }
       });
-      demoStar.x -= 1.2;
+      demoStar.x -= 1.5;
       demoStar.angle += 0.04;
       if (demoStar.x < -20) { demoStar.x = W + 50; demoStar.y = 150 + Math.random() * 250; }
 
-      // Draw background
+      // Background
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, '#0b0d2a');
       skyGrad.addColorStop(0.5, '#1a1040');
@@ -385,7 +384,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, W, H);
 
-      // Stars bg
+      // Stars
       for (let i = 0; i < 30; i++) {
         const sx = ((i * 97 + frame * 0.3) % (W + 20)) - 10;
         const sy = (i * 73) % (H * 0.7);
@@ -397,7 +396,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.fillStyle = '#1a4a20';
       ctx.fillRect(0, H - 30, W, 30);
 
-      // Draw demo pipes
+      // Pipes
       demoPipes.forEach(p => {
         const gr = ctx.createLinearGradient(p.x, 0, p.x + 50, 0);
         gr.addColorStop(0, '#1a8a40'); gr.addColorStop(0.5, '#33ee66'); gr.addColorStop(1, '#1a8a40');
@@ -409,96 +408,58 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         ctx.fillRect(p.x - 5, bY, 60, 15);
       });
 
-      // Draw demo star
-      ctx.save();
-      ctx.translate(demoStar.x, demoStar.y);
-      ctx.rotate(demoStar.angle);
-      ctx.fillStyle = '#ffee44';
-      ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 12;
-      ctx.beginPath();
-      for (let i = 0; i < 5; i++) {
-        const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
-        ctx.lineTo(Math.cos(a) * 10, Math.sin(a) * 10);
-        ctx.lineTo(Math.cos(a + Math.PI / 5) * 4, Math.sin(a + Math.PI / 5) * 4);
-      }
-      ctx.closePath(); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-
-      // Draw demo bird (cycles through stages for effect)
+      // Bird cycling stages
       const demoStage = Math.floor(frame / 90) % BIRD_STAGES.length;
       drawBird(ctx, { x: 90, y: demoBirdY, vy: demoBirdVy, radius: BIRD_STAGES[demoStage].size }, frame / 60, demoStage);
 
-      // Dark overlay for text
-      ctx.fillStyle = '#00000088';
-      ctx.fillRect(0, 0, W, 90);
-      ctx.fillRect(0, H - 180, W, 180);
+      // ---- TAP HINT (center) ----
+      // Finger icon area
+      const fingerX = W / 2;
+      const fingerY = H / 2 - 30;
+      const tapPulse = Math.sin(Date.now() * 0.006);
+      const tapScale = 1 + tapPulse * 0.12;
 
-      // Title
+      ctx.save();
+      ctx.translate(fingerX, fingerY);
+      ctx.scale(tapScale, tapScale);
+      ctx.font = '52px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 20 + tapPulse * 10;
+      ctx.fillText('👆', 0, 0);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      // Arrow up
+      const arrowAlpha = 0.5 + tapPulse * 0.5;
+      ctx.globalAlpha = arrowAlpha;
       ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 22px "Orbitron", monospace';
+      ctx.font = 'bold 20px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲  JUMP', W / 2, fingerY + 50);
+      ctx.globalAlpha = 1;
+
+      // Title at top
+      ctx.fillStyle = '#00000099';
+      ctx.fillRect(0, 0, W, 55);
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 20px "Orbitron", monospace';
       ctx.textAlign = 'center';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12;
-      ctx.fillText('FLAPPY EVOLUTION', W / 2, 40);
+      ctx.fillText('FLAPPY EVOLUTION', W / 2, 36);
       ctx.shadowBlur = 0;
 
-      // Subtitle
-      ctx.fillStyle = '#ffffff88';
-      ctx.font = '11px monospace';
-      ctx.fillText('👆 TAP to fly through pipes!', W / 2, 65);
-      ctx.fillText('⭐ Stars = -2 seconds', W / 2, 80);
-
-      // Evolution display at bottom
-      const evoY = H - 155;
-      ctx.fillStyle = '#ffffff88';
-      ctx.font = '11px monospace';
-      ctx.fillText('Every 2 pipes = EVOLUTION!', W / 2, evoY);
-
-      const stageNames = ['CHICK', 'SPARROW', 'HAWK', 'EAGLE', 'PHOENIX', 'DRAGON', 'GOD'];
-      const stageY = evoY + 22;
-      const totalW = stageNames.length * 48;
-      const startX = (W - totalW) / 2 + 24;
-      stageNames.forEach((name, i) => {
-        const sx = startX + i * 48;
-        const isActive = i === demoStage;
-        // Circle
-        const ci = BIRD_STAGES[i];
-        ctx.fillStyle = isActive ? ci.color1 : ci.color1 + '44';
-        ctx.beginPath();
-        ctx.arc(sx, stageY, isActive ? 14 : 10, 0, Math.PI * 2);
-        ctx.fill();
-        if (isActive) {
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        }
-        // Name
-        ctx.fillStyle = isActive ? '#fff' : '#ffffff55';
-        ctx.font = `${isActive ? 'bold ' : ''}8px monospace`;
-        ctx.fillText(name, sx, stageY + 22);
-        // Arrow
-        if (i < stageNames.length - 1) {
-          ctx.fillStyle = '#ffffff44';
-          ctx.font = '10px monospace';
-          ctx.fillText('→', sx + 22, stageY + 3);
-        }
-      });
-
-      // Rules
-      ctx.fillStyle = '#ff4444';
-      ctx.font = '11px monospace';
-      ctx.fillText('💀 Hit pipe = GAME OVER', W / 2, H - 60);
-      ctx.fillStyle = '#ff888888';
-      ctx.font = '10px monospace';
-      ctx.fillText('Speed increases over time!', W / 2, H - 44);
-
-      // TAP TO START
-      const pulse = 0.7 + Math.sin(Date.now() * 0.005) * 0.3;
+      // TAP TO START pulsing at bottom
+      ctx.fillStyle = '#00000099';
+      ctx.fillRect(0, H - 50, W, 50);
+      const pulse = 0.65 + Math.sin(Date.now() * 0.005) * 0.35;
       ctx.globalAlpha = pulse;
       ctx.fillStyle = '#00ff88';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15;
-      ctx.font = 'bold 16px "Orbitron", monospace';
-      ctx.fillText('[ TAP TO START ]', W / 2, H - 15);
+      ctx.font = 'bold 17px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('[ TAP TO START ]', W / 2, H - 18);
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
 
