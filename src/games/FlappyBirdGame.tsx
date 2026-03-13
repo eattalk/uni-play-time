@@ -54,7 +54,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     playing: false,
     animationId: 0,
     pipeTimer: 0,        // seconds since last pipe spawn
-    starTimer: 0,        // seconds since last free star spawn
     cloudOffsetX: 0,
     comboCount: 0,
     scorePopText: '',
@@ -110,7 +109,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         g.bird = { x: BIRD_X, y: 250, vy: 0, radius: 13 };
         g.pipes = []; g.stars = []; g.particles = [];
         g.score = 0; g.pipesPassed = 0; g.stage = 0;
-        g.elapsedSec = 0; g.pipeTimer = 0; g.starTimer = 0; g.bgTime = 0;
+        g.elapsedSec = 0; g.pipeTimer = 0; g.bgTime = 0;
         g.cloudOffsetX = 0; g.comboCount = 0;
         g.scorePopText = ''; g.scorePopTimer = 0; g.evolveFlashTimer = 0;
       } else { setCountdown(count); playCountdownBeep(); }
@@ -340,43 +339,16 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     if (!ctx) return;
     const W = canvas.width, H = canvas.height;
 
-    let introTime = 0;
+    let introTime = 0;    // seconds
     let lastTs = performance.now();
-    let demoBirdY = 280;
+    let demoBirdY = 300;
     let demoBirdVy = 0;
+    const demoPipes: { x: number; gapY: number; gapH: number }[] = [
+      { x: 250, gapY: 150, gapH: 120 },
+      { x: 420, gapY: 250, gapH: 120 },
+    ];
+    let demoStar = { x: 445, y: 310, angle: 0 };
     let rafId = 0;
-
-    // Pre-defined pipe sequence: each pipe has fixed gapY so AI can pass cleanly
-    const demoPipes: { x: number; gapY: number; gapH: number; passed: boolean }[] = [
-      { x: W + 10,   gapY: 180, gapH: 130, passed: false },
-      { x: W + 200,  gapY: 240, gapH: 130, passed: false },
-      { x: W + 390,  gapY: 160, gapH: 130, passed: false },
-      { x: W + 580,  gapY: 280, gapH: 130, passed: false },
-      { x: W + 770,  gapY: 200, gapH: 130, passed: false },
-    ];
-    const demoStars: { x: number; y: number; angle: number; collected: boolean }[] = [
-      { x: W + 100, y: 310, angle: 0, collected: false },
-      { x: W + 495, y: 230, angle: 0, collected: false },
-    ];
-
-    const DEMO_SPEED = 110; // px/s
-    const DEMO_BIRD_X = 90;
-
-    // AI: look ahead to next pipe, decide to flap based on target gapCenter
-    const getAIFlap = (): boolean => {
-      const nextPipe = demoPipes.find(p => p.x + 50 > DEMO_BIRD_X && !p.passed);
-      if (!nextPipe) return false;
-      const gapCenter = nextPipe.gapY + nextPipe.gapH / 2;
-      const dist = nextPipe.x - DEMO_BIRD_X;
-      // Predict bird Y in ~dist/DEMO_SPEED seconds
-      const dt_pred = dist / DEMO_SPEED;
-      const predY = demoBirdY + demoBirdVy * dt_pred + 0.5 * GRAVITY * dt_pred * dt_pred;
-      // Flap if predicted Y is below gapCenter (too low), or if bird is already dipping
-      return predY > gapCenter + 10 || demoBirdY > gapCenter + 20;
-    };
-
-    let lastFlapTime = -1;
-    const MIN_FLAP_INTERVAL = 0.25; // prevent spamming
 
     const introLoop = (ts: number) => {
       const rawDt = (ts - lastTs) / 1000;
@@ -384,67 +356,42 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       lastTs = ts;
       introTime += dt;
 
-      // AI flap logic
-      if (introTime - lastFlapTime > MIN_FLAP_INTERVAL && getAIFlap()) {
+      // Bird auto-flap every ~0.53s
+      const flapInterval = 0.53;
+      if (Math.floor(introTime / flapInterval) > Math.floor((introTime - dt) / flapInterval)) {
         demoBirdVy = FLAP_FORCE;
-        lastFlapTime = introTime;
       }
-
       demoBirdVy += GRAVITY * dt;
       demoBirdY += demoBirdVy * dt;
       if (demoBirdY > H - 60) { demoBirdY = H - 60; demoBirdVy = 0; }
-      if (demoBirdY < 50) { demoBirdY = 50; demoBirdVy = 0; }
+      if (demoBirdY < 40) { demoBirdY = 40; demoBirdVy = 0; }
 
-      // Move pipes
+      const demoSpeed = 90; // px/s
       demoPipes.forEach(p => {
-        p.x -= DEMO_SPEED * dt;
-        if (p.x + 50 < DEMO_BIRD_X && !p.passed) p.passed = true;
-        // Recycle off-screen pipes
-        if (p.x < -70) {
-          p.x = demoPipes.reduce((mx, pp) => Math.max(mx, pp.x), 0) + 190;
-          p.gapY = 140 + Math.floor(Math.random() * 3) * 50; // 140, 190, or 240
-          p.passed = false;
-        }
+        p.x -= demoSpeed * dt;
+        if (p.x < -60) { p.x = W + 20; p.gapY = 100 + Math.random() * 200; }
       });
+      demoStar.x -= demoSpeed * dt;
+      demoStar.angle += 2.4 * dt;
+      if (demoStar.x < -20) { demoStar.x = W + 50; demoStar.y = 150 + Math.random() * 250; }
 
-      // Move demo stars
-      demoStars.forEach(s => {
-        if (s.collected) return;
-        s.x -= DEMO_SPEED * dt;
-        s.angle += 3 * dt;
-        if (s.x < -20) {
-          s.x = demoPipes.reduce((mx, pp) => Math.max(mx, pp.x), 0) + 100;
-          s.y = 180 + Math.random() * 220;
-          s.collected = false;
-        }
-        // Collect if near bird
-        const dx = DEMO_BIRD_X - s.x, dy = demoBirdY - s.y;
-        if (Math.sqrt(dx*dx + dy*dy) < 24) s.collected = true;
-      });
-
-      // ---- Draw ----
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-      skyGrad.addColorStop(0, '#0b0d2a'); skyGrad.addColorStop(0.5, '#1a1040'); skyGrad.addColorStop(1, '#0a0e1a');
-      ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, W, H);
+      skyGrad.addColorStop(0, '#0b0d2a');
+      skyGrad.addColorStop(0.5, '#1a1040');
+      skyGrad.addColorStop(1, '#0a0e1a');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, H);
 
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 30; i++) {
         const sx = ((i * 97 + introTime * 18) % (W + 20)) - 10;
         const sy = (i * 73) % (H * 0.7);
         ctx.fillStyle = `rgba(255,255,255,${0.2 + Math.sin(introTime * 1.8 + i) * 0.15})`;
         ctx.fillRect(sx, sy, 1.5, 1.5);
       }
 
-      // Ground
-      const gg = ctx.createLinearGradient(0, H - 30, 0, H);
-      gg.addColorStop(0, '#1a4a20'); gg.addColorStop(1, '#060f08');
-      ctx.fillStyle = gg; ctx.fillRect(0, H - 30, W, 30);
-      ctx.strokeStyle = '#2a7a30'; ctx.lineWidth = 1;
-      for (let i = 0; i < W; i += 6) {
-        ctx.beginPath(); ctx.moveTo(i, H - 30);
-        ctx.lineTo(i + 2, H - 30 - 5 - Math.sin(i * 0.3 + introTime * 6) * 3); ctx.stroke();
-      }
+      ctx.fillStyle = '#1a4a20';
+      ctx.fillRect(0, H - 30, W, 30);
 
-      // Pipes
       demoPipes.forEach(p => {
         const gr = ctx.createLinearGradient(p.x, 0, p.x + 50, 0);
         gr.addColorStop(0, '#1a8a40'); gr.addColorStop(0.5, '#33ee66'); gr.addColorStop(1, '#1a8a40');
@@ -454,38 +401,35 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const bY = p.gapY + p.gapH;
         ctx.fillRect(p.x, bY, 50, H - 30 - bY);
         ctx.fillRect(p.x - 5, bY, 60, 15);
-        ctx.fillStyle = 'rgba(255,255,255,0.12)';
-        ctx.fillRect(p.x + 8, 0, 5, p.gapY);
-        ctx.fillRect(p.x + 8, bY, 5, H - 30 - bY);
       });
 
-      // Demo stars
-      demoStars.forEach(s => {
-        if (s.collected) return;
-        ctx.save();
-        ctx.translate(s.x, s.y);
-        ctx.rotate(s.angle);
-        ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 18;
-        ctx.fillStyle = '#ffee44';
-        ctx.beginPath();
-        for (let i = 0; i < 5; i++) {
-          const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
-          ctx.lineTo(Math.cos(a) * 10, Math.sin(a) * 10);
-          ctx.lineTo(Math.cos(a + Math.PI / 5) * 4, Math.sin(a + Math.PI / 5) * 4);
-        }
-        ctx.closePath(); ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#00ffcc';
-        ctx.font = 'bold 8px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('-2s', 0, 22);
-        ctx.restore();
-      });
+      const demoStage = Math.floor(introTime / 1.5) % BIRD_STAGES.length;
+      drawBird(ctx, { x: 90, y: demoBirdY, vy: demoBirdVy, radius: BIRD_STAGES[demoStage].size }, introTime, demoStage);
 
-      const demoStage = Math.floor(introTime / 2.5) % BIRD_STAGES.length;
-      drawBird(ctx, { x: DEMO_BIRD_X, y: demoBirdY, vy: demoBirdVy, radius: BIRD_STAGES[demoStage].size }, introTime, demoStage);
+      const fingerY = H / 2 - 30;
+      const tapPulse = Math.sin(introTime * 6);
+      const tapScale = 1 + tapPulse * 0.12;
 
-      // Title bar
+      ctx.save();
+      ctx.translate(W / 2, fingerY);
+      ctx.scale(tapScale, tapScale);
+      ctx.font = '52px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 20 + tapPulse * 10;
+      ctx.fillText('👆', 0, 0);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      const arrowAlpha = 0.5 + tapPulse * 0.5;
+      ctx.globalAlpha = arrowAlpha;
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 20px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲  JUMP', W / 2, fingerY + 50);
+      ctx.globalAlpha = 1;
+
       ctx.fillStyle = '#00000099';
       ctx.fillRect(0, 0, W, 55);
       ctx.fillStyle = '#00ff88';
@@ -495,7 +439,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.fillText('FLAPPY EVOLUTION', W / 2, 36);
       ctx.shadowBlur = 0;
 
-      // Tap to start (bottom bar)
       ctx.fillStyle = '#00000099';
       ctx.fillRect(0, H - 50, W, 50);
       const pulse = 0.65 + Math.sin(introTime * 5) * 0.35;
@@ -577,26 +520,8 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const gapH = diff.gapHeight;
         const gapY = Math.random() * (H - 30 - gapH - 80) + 40;
         g.pipes.push({ x: W, gapY, gapHeight: gapH, width: 50, passed: false });
-        // 70% chance to spawn a star in the gap center
-        if (Math.random() < 0.70) {
+        if (Math.random() < 0.45) {
           g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
-        }
-      }
-
-      // Free-roaming star: spawn one every ~2.5s at a random height
-      g.starTimer += dt;
-      const freeStarInterval = 2.5;
-      if (g.starTimer >= freeStarInterval) {
-        g.starTimer -= freeStarInterval;
-        // Pick a y that avoids current pipes
-        const safeY = 80 + Math.random() * (H - 30 - 80 - 80);
-        // Only spawn if not inside an existing pipe
-        const blocked = g.pipes.some(p =>
-          p.x < W - 30 && p.x > W - 200 &&
-          (safeY < p.gapY + 20 || safeY > p.gapY + p.gapHeight - 20)
-        );
-        if (!blocked) {
-          g.stars.push({ x: W - 20 + Math.random() * 60, y: safeY, radius: 10, collected: false, angle: 0 });
         }
       }
 
