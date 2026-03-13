@@ -9,7 +9,7 @@ interface GameProps {
   maxTime?: number;
 }
 
-type GamePhase = 'intro' | 'countdown' | 'playing' | 'gameover';
+type GamePhase = 'intro' | 'instructions' | 'countdown' | 'playing' | 'gameover';
 
 interface Bird { x: number; y: number; vy: number; radius: number; }
 interface Pipe { x: number; gapY: number; gapHeight: number; width: number; passed: boolean; }
