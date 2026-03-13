@@ -557,8 +557,12 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const gapH = diff.gapHeight;
         const gapY = Math.random() * (H - 30 - gapH - 80) + 40;
         g.pipes.push({ x: W, gapY, gapHeight: gapH, width: 50, passed: false });
-        if (Math.random() < 0.45) {
-          g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+        // Star 1: always spawn in center of gap (100% chance)
+        g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+        // Star 2: 65% chance — offset horizontally so they're not stacked
+        if (Math.random() < 0.65) {
+          const offset = (Math.random() - 0.5) * 40;
+          g.stars.push({ x: W + 25 + offset, y: gapY + gapH * 0.35 + Math.random() * gapH * 0.3, radius: 10, collected: false, angle: Math.PI / 4 });
         }
       }
 
