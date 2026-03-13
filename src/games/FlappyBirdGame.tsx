@@ -619,6 +619,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
       if (g.scorePopTimer > 0) g.scorePopTimer -= dt;
       if (g.evolveFlashTimer > 0) g.evolveFlashTimer -= dt;
+      if (g.evolveTextTimer > 0) g.evolveTextTimer -= dt;
 
       // Physics (dt-based)
       g.bird.vy += GRAVITY * dt;
