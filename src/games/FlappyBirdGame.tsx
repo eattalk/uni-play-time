@@ -612,7 +612,9 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         spawnParticles(g.bird.x, g.bird.y, BIRD_STAGES[newStage].color1, 35);
         spawnParticles(g.bird.x, g.bird.y, '#ffffff', 15);
         g.bird.radius = BIRD_STAGES[newStage].size;
-        g.evolveFlashTimer = 0.67;  // seconds (was 40 frames @ 60fps)
+        g.evolveFlashTimer = 0.67;
+        g.evolveText = `${BIRD_STAGES[newStage].name} EVOLVED!`;
+        g.evolveTextTimer = 2.2;  // show for 2.2 seconds
       }
 
       if (g.scorePopTimer > 0) g.scorePopTimer -= dt;
