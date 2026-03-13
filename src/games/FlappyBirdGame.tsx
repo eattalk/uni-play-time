@@ -63,23 +63,15 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     bgTime: 0,
   });
 
-  // 태블릿 가로모드: 캔버스를 컨테이너에 맞게 동적 리사이즈
+  // 폰 세로 비율(9:16)로 고정, 컨테이너 안에서 letterbox 배치
+  const GAME_W = 400;
+  const GAME_H = 700;
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    const container = containerRef.current;
-    if (!canvas || !container) return;
-    const resize = () => {
-      const w = Math.floor(container.clientWidth);
-      const h = Math.floor(container.clientHeight);
-      if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w;
-        canvas.height = h;
-      }
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(container);
-    return () => ro.disconnect();
+    if (!canvas) return;
+    canvas.width = GAME_W;
+    canvas.height = GAME_H;
   }, []);
 
   const getDifficulty = (sec: number) => {
