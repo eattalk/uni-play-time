@@ -654,10 +654,14 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.code === 'ArrowUp') {
         e.preventDefault();
-        if (phase === 'intro') startCountdown(); else flap();
+        if (phase === 'intro') startCountdown();
+        else if (phase === 'playing') flap();
       }
     };
-    const handleTouch = () => { if (phase === 'intro') startCountdown(); else flap(); };
+    const handleTouch = () => {
+      if (phase === 'intro') startCountdown();
+      else if (phase === 'playing') flap();
+    };
     window.addEventListener('keydown', handleKey);
     window.addEventListener('touchstart', handleTouch);
     return () => { window.removeEventListener('keydown', handleKey); window.removeEventListener('touchstart', handleTouch); };
@@ -665,13 +669,61 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
   return (
     <div className="relative w-full h-screen flex items-center justify-center bg-background overflow-hidden">
+      {/* Instructions Screen */}
+      {phase === 'instructions' && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
+          <div className="flex flex-col items-center gap-5 px-8 max-w-sm w-full">
+            <h1 className="text-2xl font-arcade text-neon-green tracking-widest"
+              style={{ textShadow: '0 0 20px #00ff88' }}>
+              FLAPPY EVOLUTION
+            </h1>
+
+            <div className="w-full bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col gap-3 text-sm font-mono">
+              <div className="flex items-center gap-3 text-white/80">
+                <span className="text-2xl">👆</span>
+                <span><span className="text-neon-green font-bold">TAP / SPACE</span> 로 점프</span>
+              </div>
+              <div className="flex items-center gap-3 text-white/80">
+                <span className="text-2xl">🚧</span>
+                <span>파이프 피하며 최대한 오래 <span className="text-neon-yellow font-bold">생존</span></span>
+              </div>
+              <div className="flex items-center gap-3 text-white/80">
+                <span className="text-2xl">⭐</span>
+                <span>별 먹으면 <span className="text-neon-yellow font-bold">점수 UP</span> + 시간 <span className="text-neon-green font-bold">-2초</span></span>
+              </div>
+              <div className="flex items-center gap-3 text-white/80">
+                <span className="text-2xl">🐣</span>
+                <span>파이프 2개마다 <span className="text-neon-pink font-bold">캐릭터 진화</span></span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-1 text-center text-white/40 text-xs font-mono">
+              <div className="flex gap-2 text-lg">
+                {['🐣','🐦','🦅','🦜','🔥','🐉','👑'].map((e, i) => (
+                  <span key={i}>{e}</span>
+                ))}
+              </div>
+              <span>병아리 → 참새 → 매 → 독수리 → 피닉스 → 드래곤 → 신</span>
+            </div>
+
+            <button
+              onClick={() => setPhase('intro')}
+              className="w-full py-3 rounded-xl font-arcade text-lg tracking-widest text-black bg-neon-green hover:bg-neon-green/80 transition-all"
+              style={{ boxShadow: '0 0 20px #00ff88, 0 0 40px #00ff8866' }}
+            >
+              READY!
+            </button>
+          </div>
+        </div>
+      )}
+
       <canvas
         ref={canvasRef}
         width={400}
         height={600}
         className="border border-border rounded-lg cursor-pointer max-w-full max-h-full"
-        onClick={() => { if (phase === 'intro') startCountdown(); else flap(); }}
-        style={{ imageRendering: 'pixelated' }}
+        onClick={() => { if (phase === 'intro') startCountdown(); else if (phase === 'playing') flap(); }}
+        style={{ imageRendering: 'pixelated', display: phase === 'instructions' ? 'none' : 'block' }}
       />
       {phase === 'countdown' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
@@ -707,3 +759,4 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 };
 
 export default FlappyBirdGame;
+
