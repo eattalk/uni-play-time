@@ -422,6 +422,24 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         ctx.fillRect(p.x - 5, bY, 60, 15);
       });
 
+      // Draw demo stars
+      demoStars.forEach(s => {
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.angle);
+        ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 16;
+        ctx.fillStyle = '#ffee44';
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+          ctx.lineTo(Math.cos(a) * 10, Math.sin(a) * 10);
+          ctx.lineTo(Math.cos(a + Math.PI / 5) * 4, Math.sin(a + Math.PI / 5) * 4);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      });
+
       const demoStage = Math.floor(introTime / 1.5) % BIRD_STAGES.length;
       drawBird(ctx, { x: 90, y: demoBirdY, vy: demoBirdVy, radius: BIRD_STAGES[demoStage].size }, introTime, demoStage);
 
