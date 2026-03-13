@@ -577,8 +577,26 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const gapH = diff.gapHeight;
         const gapY = Math.random() * (H - 30 - gapH - 80) + 40;
         g.pipes.push({ x: W, gapY, gapHeight: gapH, width: 50, passed: false });
-        if (Math.random() < 0.45) {
+        // 70% chance to spawn a star in the gap center
+        if (Math.random() < 0.70) {
           g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+        }
+      }
+
+      // Free-roaming star: spawn one every ~2.5s at a random height
+      g.starTimer += dt;
+      const freeStarInterval = 2.5;
+      if (g.starTimer >= freeStarInterval) {
+        g.starTimer -= freeStarInterval;
+        // Pick a y that avoids current pipes
+        const safeY = 80 + Math.random() * (H - 30 - 80 - 80);
+        // Only spawn if not inside an existing pipe
+        const blocked = g.pipes.some(p =>
+          p.x < W - 30 && p.x > W - 200 &&
+          (safeY < p.gapY + 20 || safeY > p.gapY + p.gapHeight - 20)
+        );
+        if (!blocked) {
+          g.stars.push({ x: W - 20 + Math.random() * 60, y: safeY, radius: 10, collected: false, angle: 0 });
         }
       }
 
