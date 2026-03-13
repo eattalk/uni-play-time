@@ -341,21 +341,25 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
     let introTime = 0;
     let lastTs = 0;
+
+    const BIRD_X_DEMO = 90;
+    const GAP_H = 150;
+    const DEMO_SPEED = 100; // px/s
+    const PIPE_SPACING = 220; // px between pipes
+
+    // 새 물리
     let demoBirdY = H / 2;
     let demoBirdVy = 0;
 
-    // 파이프 2개
+    // 파이프: 새가 통과할 수 있도록 gapY를 새의 현재 y 근처로 동적 설정
+    // 초기 배치: 화면 오른쪽에서 시작, 파이프 간격으로 배치
     const pipes = [
-      { x: 260, gapY: 160, gapH: 145 },
-      { x: 480, gapY: 220, gapH: 145 },
+      { x: W * 0.55, gapY: H / 2 - GAP_H / 2 - 20, gapH: GAP_H },
+      { x: W * 0.55 + PIPE_SPACING, gapY: H / 2 - GAP_H / 2 + 20, gapH: GAP_H },
     ];
-    // 별: 파이프 gap 안 + 파이프 사이 중간 허공 (총 4개)
-    const stars = [
-      { x: 285, y: 230, a: 0   },  // pipe0 gap 안
-      { x: 370, y: 270, a: 0.8 },  // pipe0↔pipe1 사이 허공
-      { x: 505, y: 290, a: 1.6 },  // pipe1 gap 안
-      { x: 595, y: 230, a: 2.4 },  // pipe1↔오른쪽 끝 사이 허공
-    ];
+
+    // 별: 각 파이프 gap 중심 + 파이프 사이 중간 허공 (파이프 위치 따라 이동)
+    // stars는 pipes에 연동해서 생성 (아래 loop에서 파이프 위치 기준으로 그림)
 
     const drawStar5 = (x: number, y: number, angle: number, r: number) => {
       ctx.save();
