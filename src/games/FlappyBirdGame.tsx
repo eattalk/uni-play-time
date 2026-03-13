@@ -791,42 +791,57 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   }, [phase, flap, startCountdown]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen flex items-center justify-center bg-background overflow-hidden">
-      <canvas
-        ref={canvasRef}
-        className="cursor-pointer"
-        onClick={() => { if (phase === 'intro') startCountdown(); else flap(); }}
-        style={{ width: '100%', height: '100%', display: 'block' }}
-      />
-      {phase === 'countdown' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
-          <div
-            key={countdown}
-            className="text-[120px] font-arcade text-neon-green leading-none"
-            style={{
-              textShadow: '0 0 30px #00ff88, 0 0 60px #00ff88',
-              animation: 'ping 0.9s ease-out forwards',
-            }}
-          >
-            {countdown}
+    <div ref={containerRef} className="relative w-full h-screen flex items-center justify-center bg-black overflow-hidden">
+      {/* 고정 게임 영역: 폰처럼 400×700, 화면에 맞게 scale */}
+      <div
+        style={{
+          position: 'relative',
+          width: GAME_W,
+          height: GAME_H,
+          maxHeight: '100vh',
+          transform: `scale(${Math.min(
+            (typeof window !== 'undefined' ? window.innerWidth : GAME_W) / GAME_W,
+            (typeof window !== 'undefined' ? window.innerHeight : GAME_H) / GAME_H
+          )})`,
+          transformOrigin: 'center center',
+        }}
+      >
+        <canvas
+          ref={canvasRef}
+          className="cursor-pointer"
+          onClick={() => { if (phase === 'intro') startCountdown(); else flap(); }}
+          style={{ width: GAME_W, height: GAME_H, display: 'block' }}
+        />
+        {phase === 'countdown' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
+            <div
+              key={countdown}
+              className="text-[120px] font-arcade text-neon-green leading-none"
+              style={{
+                textShadow: '0 0 30px #00ff88, 0 0 60px #00ff88',
+                animation: 'ping 0.9s ease-out forwards',
+              }}
+            >
+              {countdown}
+            </div>
+            <p className="text-neon-green/60 font-arcade text-sm mt-6 tracking-widest">GET READY</p>
           </div>
-          <p className="text-neon-green/60 font-arcade text-sm mt-6 tracking-widest">GET READY</p>
-        </div>
-      )}
-      {phase === 'gameover' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/85 z-10">
-          <div className="text-center">
-            <h2 className="text-3xl font-arcade text-neon-pink mb-4">GAME OVER</h2>
-            <p className="text-xl font-display text-neon-yellow">Score: {gameRef.current.score}</p>
-            <p className="text-sm font-display text-muted-foreground mt-2">
-              {BIRD_STAGES[gameRef.current.stage].name} • Pipes: {gameRef.current.pipesPassed}
-            </p>
-            <p className="text-sm font-display text-muted-foreground mt-1">
-              {formatTime(gameRef.current.elapsedSec * 1000)}
-            </p>
+        )}
+        {phase === 'gameover' && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/85 z-10">
+            <div className="text-center">
+              <h2 className="text-3xl font-arcade text-neon-pink mb-4">GAME OVER</h2>
+              <p className="text-xl font-display text-neon-yellow">Score: {gameRef.current.score}</p>
+              <p className="text-sm font-display text-muted-foreground mt-2">
+                {BIRD_STAGES[gameRef.current.stage].name} • Pipes: {gameRef.current.pipesPassed}
+              </p>
+              <p className="text-sm font-display text-muted-foreground mt-1">
+                {formatTime(gameRef.current.elapsedSec * 1000)}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
