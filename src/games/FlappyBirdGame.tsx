@@ -550,8 +550,16 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const gapH = diff.gapHeight;
         const gapY = Math.random() * (H - 30 - gapH - 80) + 40;
         g.pipes.push({ x: W, gapY, gapHeight: gapH, width: 50, passed: false });
-        if (Math.random() < 0.45) {
-          g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+
+        // 별 1: 파이프 gap 안 (항상 생성)
+        g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+
+        // 별 2: 이전 파이프와 현재 파이프 사이 중간 지점 (파이프 사이 허공)
+        if (g.pipes.length >= 2) {
+          const prevPipe = g.pipes[g.pipes.length - 2];
+          const midX = prevPipe.x + (W - prevPipe.x) / 2;
+          const midY = 60 + Math.random() * (H - 120);
+          g.stars.push({ x: midX, y: midY, radius: 9, collected: false, angle: Math.PI / 4 });
         }
       }
 
