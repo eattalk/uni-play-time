@@ -496,12 +496,23 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         ctx.fillRect(p.x - 5, bY, 60, 15);
       });
 
-      // --- Draw stars ---
-      stars.forEach(s => drawStar5(s.x, s.y, s.a, 10));
+      // --- Draw stars: 파이프 gap 중심 + 파이프 사이 중간 허공 ---
+      for (let i = 0; i < pipes.length; i++) {
+        const p = pipes[i];
+        // 파이프 gap 중심 별
+        const gapCenter = p.gapY + p.gapH / 2;
+        drawStar5(p.x + 25, gapCenter, starAngle + i * 1.2, 10);
+        // 파이프 사이 중간 허공 별 (다음 파이프 또는 W/2 기준)
+        const nextP = pipes[(i + 1) % pipes.length];
+        const midX = (p.x + 25 + nextP.x + 25) / 2;
+        if (midX > 0 && midX < W) {
+          drawStar5(midX, H / 2, starAngle + i * 1.8 + 0.9, 10);
+        }
+      }
 
       // --- Draw bird ---
       const demoStage = Math.floor(introTime / 1.8) % BIRD_STAGES.length;
-      drawBirdSimple(90, demoBirdY, demoBirdVy, introTime, demoStage);
+      drawBirdSimple(BIRD_X_DEMO, demoBirdY, demoBirdVy, introTime, demoStage);
 
       // --- UI overlays ---
       // top bar
