@@ -343,17 +343,17 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     let lastTs = performance.now();
     let demoBirdY = 300;
     let demoBirdVy = 0;
+    // 2 pipes — gap 넉넉하게 (새가 잘 통과하도록)
     const demoPipes: { x: number; gapY: number; gapH: number }[] = [
-      { x: 250, gapY: 150, gapH: 130 },
-      { x: 430, gapY: 220, gapH: 130 },
-      { x: 610, gapY: 170, gapH: 130 },
+      { x: 260, gapY: 160, gapH: 140 },
+      { x: 480, gapY: 220, gapH: 140 },
     ];
-    // 별 여러 개 — 파이프 사이에 배치
-    const demoStars: { x: number; y: number; angle: number }[] = [
-      { x: 340, y: 215, angle: 0 },
-      { x: 520, y: 285, angle: 0.5 },
-      { x: 700, y: 235, angle: 1.0 },
-      { x: 160, y: 260, angle: 1.5 },
+    // 별: 파이프 gap 안 1개 + 파이프 사이 중간지점 1개 (총 4개)
+    const demoStars: { x: number; y: number; angle: number; midpoint: boolean }[] = [
+      { x: 285, y: 230, angle: 0,   midpoint: false }, // pipe0 gap 안
+      { x: 370, y: 270, angle: 0.8, midpoint: true  }, // pipe0~pipe1 사이 중간
+      { x: 505, y: 290, angle: 1.6, midpoint: false }, // pipe1 gap 안
+      { x: 590, y: 240, angle: 2.4, midpoint: true  }, // pipe1~화면 오른쪽 사이
     ];
     let rafId = 0;
 
@@ -363,25 +363,28 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       lastTs = ts;
       introTime += dt;
 
-      // Bird auto-flap every ~0.53s
-      const flapInterval = 0.53;
+      // Bird auto-flap every 0.58s
+      const flapInterval = 0.58;
       if (Math.floor(introTime / flapInterval) > Math.floor((introTime - dt) / flapInterval)) {
-        demoBirdVy = FLAP_FORCE;
+        demoBirdVy = FLAP_FORCE * 0.92;
       }
       demoBirdVy += GRAVITY * dt;
       demoBirdY += demoBirdVy * dt;
       if (demoBirdY > H - 60) { demoBirdY = H - 60; demoBirdVy = 0; }
       if (demoBirdY < 40) { demoBirdY = 40; demoBirdVy = 0; }
 
-      const demoSpeed = 90; // px/s
+      const demoSpeed = 85; // px/s
       demoPipes.forEach(p => {
         p.x -= demoSpeed * dt;
-        if (p.x < -60) { p.x = W + 20; p.gapY = 100 + Math.random() * 200; }
+        if (p.x < -60) { p.x = W + 30; p.gapY = 120 + Math.random() * 180; }
       });
       demoStars.forEach(s => {
         s.x -= demoSpeed * dt;
         s.angle += 2.4 * dt;
-        if (s.x < -20) { s.x = W + 50 + Math.random() * 200; s.y = 100 + Math.random() * 300; }
+        if (s.x < -20) {
+          s.x = W + 60 + Math.random() * 160;
+          s.y = 120 + Math.random() * 280;
+        }
       });
 
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
