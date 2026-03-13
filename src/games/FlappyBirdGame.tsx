@@ -39,6 +39,7 @@ const BIRD_STAGES = [
 
 const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<GamePhase>('intro');
   const [countdown, setCountdown] = useState(3);
   const gameRef = useRef({
@@ -59,9 +60,27 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     scorePopText: '',
     scorePopTimer: 0,    // seconds
     evolveFlashTimer: 0, // seconds
-    // visual frame accumulator for bg star animation (time-based)
     bgTime: 0,
   });
+
+  // 태블릿 가로모드: 캔버스를 컨테이너에 맞게 동적 리사이즈
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    const resize = () => {
+      const w = Math.floor(container.clientWidth);
+      const h = Math.floor(container.clientHeight);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
 
   const getDifficulty = (sec: number) => {
     const t = Math.min(sec / maxTime, 1);
@@ -514,15 +533,18 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       const demoStage = Math.floor(introTime / 1.8) % BIRD_STAGES.length;
       drawBirdSimple(BIRD_X_DEMO, demoBirdY, demoBirdVy, introTime, demoStage);
 
-      // --- UI overlays ---
+      // --- UI overlays (스케일 기반) ---
+      const sc = W / 400;
+      const topBarH = Math.round(52 * sc);
+      const btmBarH = Math.round(46 * sc);
       // top bar
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(0, 0, W, 52);
+      ctx.fillRect(0, 0, W, topBarH);
       ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 19px "Orbitron", monospace';
+      ctx.font = `bold ${Math.round(19 * sc)}px "Orbitron", monospace`;
       ctx.textAlign = 'center';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
-      ctx.fillText('FLAPPY EVOLUTION', W / 2, 34);
+      ctx.fillText('FLAPPY EVOLUTION', W / 2, topBarH * 0.65);
       ctx.shadowBlur = 0;
 
       // tap icon centre
@@ -531,7 +553,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.save();
       ctx.translate(W / 2, fingerY);
       ctx.scale(1 + tapPulse * 0.1, 1 + tapPulse * 0.1);
-      ctx.font = '48px serif';
+      ctx.font = `${Math.round(48 * sc)}px serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 18 + tapPulse * 8;
@@ -540,21 +562,21 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.restore();
       ctx.globalAlpha = 0.55 + tapPulse * 0.45;
       ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 18px monospace';
+      ctx.font = `bold ${Math.round(18 * sc)}px monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText('▲  TAP TO JUMP', W / 2, fingerY + 44);
+      ctx.fillText('▲  TAP TO JUMP', W / 2, fingerY + 44 * sc);
       ctx.globalAlpha = 1;
 
       // bottom bar
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(0, H - 46, W, 46);
+      ctx.fillRect(0, H - btmBarH, W, btmBarH);
       const pulse = 0.6 + Math.sin(introTime * 4.5) * 0.4;
       ctx.globalAlpha = pulse;
       ctx.fillStyle = '#00ff88';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
-      ctx.font = 'bold 16px "Orbitron", monospace';
+      ctx.font = `bold ${Math.round(16 * sc)}px "Orbitron", monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText('[ TAP / CLICK / SPACE ]', W / 2, H - 16);
+      ctx.fillText('[ TAP / CLICK / SPACE ]', W / 2, H - btmBarH * 0.35);
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
 
@@ -719,36 +741,37 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       });
       ctx.globalAlpha = 1;
 
-      // HUD
+      // HUD — 스케일: 기준 400px 기준으로 W에 비례
+      const sc = W / 400;
+      const hudH = Math.round(50 * sc);
       ctx.fillStyle = '#00000099';
-      ctx.fillRect(0, 0, W, 44);
+      ctx.fillRect(0, 0, W, hudH);
       ctx.fillStyle = '#00ffcc';
-      ctx.font = 'bold 15px "Orbitron", monospace';
+      ctx.font = `bold ${Math.round(15 * sc)}px "Orbitron", monospace`;
       ctx.textAlign = 'left';
-      ctx.fillText(`⏱ ${formatTime(g.elapsedSec * 1000)}`, 10, 29);
+      ctx.fillText(`⏱ ${formatTime(g.elapsedSec * 1000)}`, 10 * sc, hudH * 0.62);
       ctx.fillStyle = '#ffdd00';
       ctx.textAlign = 'center';
-      ctx.font = 'bold 16px "Orbitron", monospace';
-      ctx.fillText(`★ ${g.score}`, W / 2, 29);
+      ctx.font = `bold ${Math.round(18 * sc)}px "Orbitron", monospace`;
+      ctx.fillText(`★ ${g.score}`, W / 2, hudH * 0.62);
       ctx.textAlign = 'right';
       ctx.fillStyle = BIRD_STAGES[g.stage].color1;
-      ctx.font = 'bold 11px "Orbitron", monospace';
-      ctx.fillText(BIRD_STAGES[g.stage].name, W - 10, 29);
+      ctx.font = `bold ${Math.round(13 * sc)}px "Orbitron", monospace`;
+      ctx.fillText(BIRD_STAGES[g.stage].name, W - 10 * sc, hudH * 0.62);
 
       const nextEvo = (g.stage + 1) * PIPES_PER_EVOLUTION;
       if (g.stage < BIRD_STAGES.length - 1) {
         ctx.fillStyle = '#ffffff66';
-        ctx.font = '9px monospace';
+        ctx.font = `${Math.round(10 * sc)}px monospace`;
         ctx.textAlign = 'right';
-        ctx.fillText(`Next: ${g.pipesPassed}/${nextEvo}`, W - 10, 40);
+        ctx.fillText(`Next: ${g.pipesPassed}/${nextEvo}`, W - 10 * sc, hudH * 0.88);
       }
 
       if (g.scorePopTimer > 0) {
         ctx.globalAlpha = Math.min(1, g.scorePopTimer / 0.5);
         ctx.fillStyle = '#00ff88';
-        ctx.font = 'bold 18px "Orbitron", monospace';
+        ctx.font = `bold ${Math.round(18 * sc)}px "Orbitron", monospace`;
         ctx.textAlign = 'center';
-        // Float upward: 30px over 1 second
         const floatOffset = (1.0 - g.scorePopTimer) * 30;
         ctx.fillText(g.scorePopText, g.bird.x, g.bird.y - 30 - floatOffset);
         ctx.globalAlpha = 1;
@@ -776,14 +799,12 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   }, [phase, flap, startCountdown]);
 
   return (
-    <div className="relative w-full h-screen flex items-center justify-center bg-background overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-screen flex items-center justify-center bg-background overflow-hidden">
       <canvas
         ref={canvasRef}
-        width={400}
-        height={600}
-        className="border border-border rounded-lg cursor-pointer max-w-full max-h-full"
+        className="cursor-pointer"
         onClick={() => { if (phase === 'intro') startCountdown(); else flap(); }}
-        style={{ imageRendering: 'pixelated' }}
+        style={{ width: '100%', height: '100%', display: 'block' }}
       />
       {phase === 'countdown' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
