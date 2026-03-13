@@ -114,6 +114,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         g.elapsedSec = 0; g.pipeTimer = 0; g.bgTime = 0;
         g.cloudOffsetX = 0; g.comboCount = 0;
         g.scorePopText = ''; g.scorePopTimer = 0; g.evolveFlashTimer = 0;
+        g.evolveText = ''; g.evolveTextTimer = 0;
       } else { setCountdown(count); playCountdownBeep(); }
     }, 1000);
   }, []);
