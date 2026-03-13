@@ -520,8 +520,17 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const gapH = diff.gapHeight;
         const gapY = Math.random() * (H - 30 - gapH - 80) + 40;
         g.pipes.push({ x: W, gapY, gapHeight: gapH, width: 50, passed: false });
-        if (Math.random() < 0.45) {
+        // Star in pipe gap (75% chance)
+        if (Math.random() < 0.75) {
           g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+        }
+        // Extra floating star above/below gap (40% chance)
+        if (Math.random() < 0.40) {
+          const floatY = Math.random() < 0.5
+            ? gapY - 30 - Math.random() * 60   // above top pipe opening
+            : gapY + gapH + 30 + Math.random() * 60; // below bottom pipe opening
+          const clampedY = Math.max(50, Math.min(H - 60, floatY));
+          g.stars.push({ x: W + 80, y: clampedY, radius: 10, collected: false, angle: 0 });
         }
       }
 
