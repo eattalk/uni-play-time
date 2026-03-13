@@ -8,7 +8,7 @@ const Index = () => {
       <div className="text-center p-8">
         <h1 className="text-3xl font-arcade text-neon-green mb-4">JUMP BIRD GAME</h1>
         <p className="text-sm font-display text-muted-foreground mb-8">
-
+          JUMP JUMP JUMP!!
         </p>
         <button
           onClick={() => navigate('/webview/games/flappy?table_name=demo')}
