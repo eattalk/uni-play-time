@@ -507,12 +507,24 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.restore();
 
       // --- UI overlays ---
-      const fingerY = H / 2 - 30;
       const tapPulse = Math.sin(introTime * 6);
+
+      // Top title bar: "EAT TALK"
+      ctx.fillStyle = '#00000099';
+      ctx.fillRect(0, 0, W, 60);
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 28px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 18;
+      ctx.fillText('EAT TALK', W / 2, 40);
+      ctx.shadowBlur = 0;
+
+      // Tap icon bottom-right area
+      const fingerY = H / 2 + 30;
       ctx.save();
       ctx.translate(W / 2, fingerY);
       ctx.scale(1 + tapPulse * 0.12, 1 + tapPulse * 0.12);
-      ctx.font = '52px serif';
+      ctx.font = '48px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = '#00ff88';
@@ -521,22 +533,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.shadowBlur = 0;
       ctx.restore();
 
-      ctx.globalAlpha = 0.5 + tapPulse * 0.5;
-      ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 20px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('▲  JUMP', W / 2, fingerY + 50);
-      ctx.globalAlpha = 1;
-
-      ctx.fillStyle = '#00000099';
-      ctx.fillRect(0, 0, W, 55);
-      ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 20px "Orbitron", monospace';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12;
-      ctx.fillText('FLAPPY EVOLUTION', W / 2, 36);
-      ctx.shadowBlur = 0;
-
+      // Bottom bar: TAP TO START
       ctx.fillStyle = '#00000099';
       ctx.fillRect(0, H - 50, W, 50);
       const pulse = 0.65 + Math.sin(introTime * 5) * 0.35;
