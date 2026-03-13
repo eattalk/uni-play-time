@@ -424,9 +424,15 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       lastTs = ts;
       introTime += dt;
 
-      // Auto-flap every 0.58s
-      if (Math.floor(introTime / 0.58) > Math.floor((introTime - dt) / 0.58)) {
-        demoBirdVy = FLAP_FORCE * 0.9;
+      // AI auto-pilot: aim for the gap center of the nearest upcoming pipe
+      const birdX = 90;
+      const upcoming = pipes
+        .filter(p => p.x + 50 > birdX - 10)
+        .sort((a, b) => a.x - b.x)[0];
+      const targetY = upcoming ? upcoming.gapY + upcoming.gapH / 2 : H / 2;
+      // flap when bird is below target (with small look-ahead) and not already flying up fast
+      if (demoBirdY > targetY - 10 && demoBirdVy > -60) {
+        demoBirdVy = FLAP_FORCE * 0.88;
       }
       demoBirdVy += GRAVITY * dt;
       demoBirdY += demoBirdVy * dt;
