@@ -341,13 +341,19 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
     let introTime = 0;    // seconds
     let lastTs = performance.now();
-    let demoBirdY = 300;
-    let demoBirdVy = 0;
+    let demoBirdY = H / 2;
+    let demoBirdVy = FLAP_FORCE * 0.5; // start with slight upward push
+    const demoSpeed = 110; // px/s
+    const demoPipeInterval = W / demoSpeed; // time for a pipe to cross the screen
+    // Space pipes so bird always faces one
     const demoPipes: { x: number; gapY: number; gapH: number }[] = [
-      { x: 250, gapY: 150, gapH: 120 },
-      { x: 420, gapY: 250, gapH: 120 },
+      { x: W * 0.55, gapY: 160, gapH: 130 },
+      { x: W * 0.55 + W * 0.7, gapY: 220, gapH: 130 },
     ];
-    let demoStar = { x: 445, y: 310, angle: 0 };
+    // Place star in center of first gap
+    const demoStars: { x: number; y: number; angle: number }[] = [
+      { x: demoPipes[0].x + 25, y: demoPipes[0].gapY + demoPipes[0].gapH / 2, angle: 0 },
+    ];
     let rafId = 0;
 
     const introLoop = (ts: number) => {
@@ -356,24 +362,37 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       lastTs = ts;
       introTime += dt;
 
-      // Bird auto-flap every ~0.53s
-      const flapInterval = 0.53;
+      // Auto-flap: trigger when bird is falling and has room above, synced to gravity
+      // Flap just as bird crosses pipe gap center
+      const timeToFall = Math.abs(FLAP_FORCE) / GRAVITY; // ~0.357s to apex
+      const flapInterval = timeToFall * 1.7; // slightly longer to look natural
       if (Math.floor(introTime / flapInterval) > Math.floor((introTime - dt) / flapInterval)) {
         demoBirdVy = FLAP_FORCE;
       }
       demoBirdVy += GRAVITY * dt;
       demoBirdY += demoBirdVy * dt;
-      if (demoBirdY > H - 60) { demoBirdY = H - 60; demoBirdVy = 0; }
+      if (demoBirdY > H - 60) { demoBirdY = H - 60; demoBirdVy = FLAP_FORCE * 0.8; }
       if (demoBirdY < 40) { demoBirdY = 40; demoBirdVy = 0; }
 
-      const demoSpeed = 90; // px/s
       demoPipes.forEach(p => {
         p.x -= demoSpeed * dt;
-        if (p.x < -60) { p.x = W + 20; p.gapY = 100 + Math.random() * 200; }
+        if (p.x + 50 < -10) {
+          // Respawn off-screen right with a gap centered near bird's expected Y
+          const otherPipe = demoPipes.find(op => op !== p);
+          const baseX = otherPipe ? otherPipe.x + W * 0.7 : W + 20;
+          p.x = baseX;
+          p.gapY = Math.max(60, Math.min(H - 30 - 130 - 40, demoBirdY - 65 + (Math.random() - 0.5) * 80));
+        }
       });
-      demoStar.x -= demoSpeed * dt;
-      demoStar.angle += 2.4 * dt;
-      if (demoStar.x < -20) { demoStar.x = W + 50; demoStar.y = 150 + Math.random() * 250; }
+      demoStars.forEach(s => {
+        s.x -= demoSpeed * dt;
+        s.angle += 2.4 * dt;
+        if (s.x + 15 < -10) {
+          const pipe = demoPipes[Math.floor(Math.random() * demoPipes.length)];
+          s.x = pipe.x + 25;
+          s.y = pipe.gapY + pipe.gapH / 2;
+        }
+      });
 
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, '#0b0d2a');
@@ -401,6 +420,24 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const bY = p.gapY + p.gapH;
         ctx.fillRect(p.x, bY, 50, H - 30 - bY);
         ctx.fillRect(p.x - 5, bY, 60, 15);
+      });
+
+      // Draw demo stars
+      demoStars.forEach(s => {
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.angle);
+        ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 16;
+        ctx.fillStyle = '#ffee44';
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+          ctx.lineTo(Math.cos(a) * 10, Math.sin(a) * 10);
+          ctx.lineTo(Math.cos(a + Math.PI / 5) * 4, Math.sin(a + Math.PI / 5) * 4);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
       });
 
       const demoStage = Math.floor(introTime / 1.5) % BIRD_STAGES.length;
@@ -520,8 +557,12 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const gapH = diff.gapHeight;
         const gapY = Math.random() * (H - 30 - gapH - 80) + 40;
         g.pipes.push({ x: W, gapY, gapHeight: gapH, width: 50, passed: false });
-        if (Math.random() < 0.45) {
-          g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+        // Star 1: always spawn in center of gap (100% chance)
+        g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+        // Star 2: 65% chance — offset horizontally so they're not stacked
+        if (Math.random() < 0.65) {
+          const offset = (Math.random() - 0.5) * 40;
+          g.stars.push({ x: W + 25 + offset, y: gapY + gapH * 0.35 + Math.random() * gapH * 0.3, radius: 10, collected: false, angle: Math.PI / 4 });
         }
       }
 
