@@ -54,6 +54,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     playing: false,
     animationId: 0,
     pipeTimer: 0,        // seconds since last pipe spawn
+    starTimer: 0,        // seconds since last free star spawn
     cloudOffsetX: 0,
     comboCount: 0,
     scorePopText: '',
