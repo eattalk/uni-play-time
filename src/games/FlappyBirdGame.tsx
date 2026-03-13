@@ -753,7 +753,59 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         // Float upward: 30px over 1 second
         const floatOffset = (1.0 - g.scorePopTimer) * 30;
         ctx.fillText(g.scorePopText, g.bird.x, g.bird.y - 30 - floatOffset);
+      ctx.globalAlpha = 1;
+      }
+
+      // Evolve text: "EAGLE EVOLVED!" 2.2초간 화면 중앙에 크게 표시, 후반 페이드아웃
+      if (g.evolveTextTimer > 0 && g.evolveText) {
+        const TOTAL = 2.2;
+        const fadeOutStart = 0.6; // 마지막 0.6초 동안 페이드아웃
+        const alpha = g.evolveTextTimer < fadeOutStart
+          ? g.evolveTextTimer / fadeOutStart
+          : 1;
+        // 등장 시 위에서 아래로 scaleY 효과 (0.3초 동안 scale 0→1)
+        const scaleIn = Math.min(1, (TOTAL - g.evolveTextTimer) / 0.25);
+        const stageColor = BIRD_STAGES[g.stage].color1;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(1, scaleIn);
+
+        // 배경 패널
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.beginPath();
+        ctx.roundRect(-160, -46, 320, 90, 12);
+        ctx.fill();
+
+        // 테두리 glow
+        ctx.strokeStyle = stageColor;
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = stageColor;
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.roundRect(-160, -46, 320, 90, 12);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // 타이틀 텍스트
+        ctx.fillStyle = stageColor;
+        ctx.font = 'bold 26px "Orbitron", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = stageColor;
+        ctx.shadowBlur = 24;
+        ctx.fillText(g.evolveText, 0, -10);
+        ctx.shadowBlur = 0;
+
+        // 서브 텍스트
+        ctx.fillStyle = '#ffffff99';
+        ctx.font = '11px "Orbitron", monospace';
+        ctx.fillText('EVOLUTION!', 0, 24);
+
+        ctx.restore();
         ctx.globalAlpha = 1;
+        ctx.textBaseline = 'alphabetic';
       }
 
       g.animationId = requestAnimationFrame(loop);
