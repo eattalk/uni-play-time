@@ -9,7 +9,7 @@ interface GameProps {
   maxTime?: number;
 }
 
-type GamePhase = 'intro' | 'instructions' | 'countdown' | 'playing' | 'gameover';
+type GamePhase = 'intro' | 'countdown' | 'playing' | 'gameover';
 
 interface Bird { x: number; y: number; vy: number; radius: number; }
 interface Pipe { x: number; gapY: number; gapHeight: number; width: number; passed: boolean; }
@@ -37,11 +37,9 @@ const BIRD_STAGES = [
   { name: 'GOD',     color1: '#ffffff', color2: '#ffdd00', size: 19, glowSize: 30 },
 ];
 
-const STAR_SCORE_BONUS = 30; // 별 1개당 점수
-
 const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [phase, setPhase] = useState<GamePhase>('instructions');
+  const [phase, setPhase] = useState<GamePhase>('intro');
   const [countdown, setCountdown] = useState(3);
   const gameRef = useRef({
     bird: { x: BIRD_X, y: 250, vy: 0, radius: 13 } as Bird,
@@ -116,10 +114,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         g.scorePopText = ''; g.scorePopTimer = 0; g.evolveFlashTimer = 0;
       } else { setCountdown(count); playCountdownBeep(); }
     }, 1000);
-  }, []);
-
-  const goToIntro = useCallback(() => {
-    setPhase('intro');
   }, []);
 
   // ===== DRAWING =====
@@ -332,11 +326,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.fillStyle = '#00ffcc';
     ctx.font = 'bold 8px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('+★ -2s', 0, star.radius + 12);
+    ctx.fillText('-2s', 0, star.radius + 12);
     ctx.restore();
   };
 
-  // ===== INTRO SCREEN (animation demo - triggered after instructions) =====
+  // ===== INTRO SCREEN =====
   useEffect(() => {
     if (phase !== 'intro') return;
     const canvas = canvasRef.current;
@@ -447,13 +441,13 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
       ctx.fillStyle = '#00000099';
       ctx.fillRect(0, H - 50, W, 50);
-      ctx.fillStyle = '#00000099';
-      ctx.fillRect(0, H - 50, W, 50);
+      const pulse = 0.65 + Math.sin(introTime * 5) * 0.35;
+      ctx.globalAlpha = pulse;
       ctx.fillStyle = '#00ff88';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15;
       ctx.font = 'bold 17px "Orbitron", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('[ READY? TAP OR CLICK ]', W / 2, H - 18);
+      ctx.fillText('[ TAP TO START ]', W / 2, H - 18);
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
 
@@ -576,13 +570,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         if (Math.sqrt(dx * dx + dy * dy) < g.bird.radius + s.radius) {
           s.collected = true;
           g.elapsedSec = Math.max(0, g.elapsedSec - STAR_TIME_BONUS / 1000);
-          const starScore = STAR_SCORE_BONUS * (1 + Math.floor(g.elapsedSec / 10));
-          g.score += starScore;
+          g.score += 10;
           playStarSound();
-          spawnParticles(s.x, s.y, '#ffee44', 35);
-          spawnParticles(s.x, s.y, '#ffffff', 15);
-          g.scorePopText = `⭐ +${starScore} -2s!`;
-          g.scorePopTimer = 1.5;
+          spawnParticles(s.x, s.y, '#ffee44', 25);
+          g.scorePopText = '⭐ +10 & -2s!';
+          g.scorePopTimer = 1.33;  // seconds (was 80 frames)
         }
       });
 
@@ -654,14 +646,10 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.code === 'ArrowUp') {
         e.preventDefault();
-        if (phase === 'intro') startCountdown();
-        else if (phase === 'playing') flap();
+        if (phase === 'intro') startCountdown(); else flap();
       }
     };
-    const handleTouch = () => {
-      if (phase === 'intro') startCountdown();
-      else if (phase === 'playing') flap();
-    };
+    const handleTouch = () => { if (phase === 'intro') startCountdown(); else flap(); };
     window.addEventListener('keydown', handleKey);
     window.addEventListener('touchstart', handleTouch);
     return () => { window.removeEventListener('keydown', handleKey); window.removeEventListener('touchstart', handleTouch); };
@@ -669,61 +657,13 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
   return (
     <div className="relative w-full h-screen flex items-center justify-center bg-background overflow-hidden">
-      {/* Instructions Screen */}
-      {phase === 'instructions' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
-          <div className="flex flex-col items-center gap-5 px-8 max-w-sm w-full">
-            <h1 className="text-2xl font-arcade text-neon-green tracking-widest"
-              style={{ textShadow: '0 0 20px #00ff88' }}>
-              FLAPPY EVOLUTION
-            </h1>
-
-            <div className="w-full bg-white/5 border border-white/10 rounded-xl p-5 flex flex-col gap-3 text-sm font-mono">
-              <div className="flex items-center gap-3 text-white/80">
-                <span className="text-2xl">👆</span>
-                <span><span className="text-neon-green font-bold">TAP / SPACE</span> 로 점프</span>
-              </div>
-              <div className="flex items-center gap-3 text-white/80">
-                <span className="text-2xl">🚧</span>
-                <span>파이프 피하며 최대한 오래 <span className="text-neon-yellow font-bold">생존</span></span>
-              </div>
-              <div className="flex items-center gap-3 text-white/80">
-                <span className="text-2xl">⭐</span>
-                <span>별 먹으면 <span className="text-neon-yellow font-bold">점수 UP</span> + 시간 <span className="text-neon-green font-bold">-2초</span></span>
-              </div>
-              <div className="flex items-center gap-3 text-white/80">
-                <span className="text-2xl">🐣</span>
-                <span>파이프 2개마다 <span className="text-neon-pink font-bold">캐릭터 진화</span></span>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center gap-1 text-center text-white/40 text-xs font-mono">
-              <div className="flex gap-2 text-lg">
-                {['🐣','🐦','🦅','🦜','🔥','🐉','👑'].map((e, i) => (
-                  <span key={i}>{e}</span>
-                ))}
-              </div>
-              <span>병아리 → 참새 → 매 → 독수리 → 피닉스 → 드래곤 → 신</span>
-            </div>
-
-            <button
-              onClick={() => setPhase('intro')}
-              className="w-full py-3 rounded-xl font-arcade text-lg tracking-widest text-black bg-neon-green hover:bg-neon-green/80 transition-all"
-              style={{ boxShadow: '0 0 20px #00ff88, 0 0 40px #00ff8866' }}
-            >
-              READY!
-            </button>
-          </div>
-        </div>
-      )}
-
       <canvas
         ref={canvasRef}
         width={400}
         height={600}
         className="border border-border rounded-lg cursor-pointer max-w-full max-h-full"
-        onClick={() => { if (phase === 'intro') startCountdown(); else if (phase === 'playing') flap(); }}
-        style={{ imageRendering: 'pixelated', display: phase === 'instructions' ? 'none' : 'block' }}
+        onClick={() => { if (phase === 'intro') startCountdown(); else flap(); }}
+        style={{ imageRendering: 'pixelated' }}
       />
       {phase === 'countdown' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
@@ -759,4 +699,3 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 };
 
 export default FlappyBirdGame;
-

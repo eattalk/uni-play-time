@@ -38,48 +38,19 @@ export function playScoreSound() {
 
 export function playStarSound() {
   const ctx = getCtx();
-
-  // 쫘란! 임팩트 타격음
-  const impactOsc = ctx.createOscillator();
-  const impactGain = ctx.createGain();
-  impactOsc.connect(impactGain);
-  impactGain.connect(ctx.destination);
-  impactOsc.type = 'square';
-  impactOsc.frequency.setValueAtTime(1400, ctx.currentTime);
-  impactOsc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.05);
-  impactGain.gain.setValueAtTime(0.55, ctx.currentTime);
-  impactGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-  impactOsc.start(ctx.currentTime);
-  impactOsc.stop(ctx.currentTime + 0.08);
-
-  // 코인 획득 - 빠른 상승 아르페지오
-  const coinNotes = [659, 784, 988, 1319, 1760];
-  coinNotes.forEach((freq, i) => {
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((freq, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(freq, ctx.currentTime + 0.05 + i * 0.045);
-    osc.frequency.exponentialRampToValueAtTime(freq * 1.08, ctx.currentTime + 0.05 + i * 0.045 + 0.08);
-    gain.gain.setValueAtTime(0.4, ctx.currentTime + 0.05 + i * 0.045);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05 + i * 0.045 + 0.2);
-    osc.start(ctx.currentTime + 0.05 + i * 0.045);
-    osc.stop(ctx.currentTime + 0.05 + i * 0.045 + 0.2);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.06);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime + i * 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.06 + 0.3);
+    osc.start(ctx.currentTime + i * 0.06);
+    osc.stop(ctx.currentTime + i * 0.06 + 0.3);
   });
-
-  // 반짝 - 고음 shimmer
-  const shimmerOsc = ctx.createOscillator();
-  const shimmerGain = ctx.createGain();
-  shimmerOsc.connect(shimmerGain);
-  shimmerGain.connect(ctx.destination);
-  shimmerOsc.type = 'sine';
-  shimmerOsc.frequency.setValueAtTime(3000, ctx.currentTime + 0.28);
-  shimmerOsc.frequency.exponentialRampToValueAtTime(4200, ctx.currentTime + 0.5);
-  shimmerGain.gain.setValueAtTime(0.25, ctx.currentTime + 0.28);
-  shimmerGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
-  shimmerOsc.start(ctx.currentTime + 0.28);
-  shimmerOsc.stop(ctx.currentTime + 0.55);
 }
 
 export function playHitSound() {
