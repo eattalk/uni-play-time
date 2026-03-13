@@ -583,7 +583,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       g.playing = false;
       playGameOverSound();
       setPhase('gameover');
-      setTimeout(() => onGameEnd(g.score), 1500);
+      // 동점 방지: 밀리초 단위 미세 고유값을 소수점으로 추가
+      // 예) score=21 → 21.000843 처럼 렌더링에는 정수로 보이지만 순위는 구별 가능
+      const uniqueTiebreaker = (performance.now() % 1000) / 1_000_000; // 0.000000 ~ 0.000999
+      const finalScore = parseFloat((g.score + uniqueTiebreaker).toFixed(6));
+      setTimeout(() => onGameEnd(finalScore), 1500);
     };
 
     const loop = (timestamp: number) => {
