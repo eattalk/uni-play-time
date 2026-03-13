@@ -336,7 +336,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.restore();
   };
 
-  // ===== INTRO SCREEN =====
+  // ===== INTRO SCREEN (animation demo - triggered after instructions) =====
   useEffect(() => {
     if (phase !== 'intro') return;
     const canvas = canvasRef.current;
