@@ -39,6 +39,7 @@ const BIRD_STAGES = [
 
 const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<GamePhase>('intro');
   const [countdown, setCountdown] = useState(3);
   const gameRef = useRef({
@@ -59,9 +60,27 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     scorePopText: '',
     scorePopTimer: 0,    // seconds
     evolveFlashTimer: 0, // seconds
-    // visual frame accumulator for bg star animation (time-based)
     bgTime: 0,
   });
+
+  // 태블릿 가로모드: 캔버스를 컨테이너에 맞게 동적 리사이즈
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+    const resize = () => {
+      const w = Math.floor(container.clientWidth);
+      const h = Math.floor(container.clientHeight);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+    };
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
 
   const getDifficulty = (sec: number) => {
     const t = Math.min(sec / maxTime, 1);
