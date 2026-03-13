@@ -576,11 +576,13 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         if (Math.sqrt(dx * dx + dy * dy) < g.bird.radius + s.radius) {
           s.collected = true;
           g.elapsedSec = Math.max(0, g.elapsedSec - STAR_TIME_BONUS / 1000);
-          g.score += 10;
+          const starScore = STAR_SCORE_BONUS * (1 + Math.floor(g.elapsedSec / 10));
+          g.score += starScore;
           playStarSound();
-          spawnParticles(s.x, s.y, '#ffee44', 25);
-          g.scorePopText = '⭐ +10 & -2s!';
-          g.scorePopTimer = 1.33;  // seconds (was 80 frames)
+          spawnParticles(s.x, s.y, '#ffee44', 35);
+          spawnParticles(s.x, s.y, '#ffffff', 15);
+          g.scorePopText = `⭐ +${starScore} -2s!`;
+          g.scorePopTimer = 1.5;
         }
       });
 
