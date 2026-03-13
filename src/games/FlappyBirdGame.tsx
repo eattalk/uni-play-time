@@ -533,15 +533,18 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       const demoStage = Math.floor(introTime / 1.8) % BIRD_STAGES.length;
       drawBirdSimple(BIRD_X_DEMO, demoBirdY, demoBirdVy, introTime, demoStage);
 
-      // --- UI overlays ---
+      // --- UI overlays (스케일 기반) ---
+      const sc = W / 400;
+      const topBarH = Math.round(52 * sc);
+      const btmBarH = Math.round(46 * sc);
       // top bar
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(0, 0, W, 52);
+      ctx.fillRect(0, 0, W, topBarH);
       ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 19px "Orbitron", monospace';
+      ctx.font = `bold ${Math.round(19 * sc)}px "Orbitron", monospace`;
       ctx.textAlign = 'center';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
-      ctx.fillText('FLAPPY EVOLUTION', W / 2, 34);
+      ctx.fillText('FLAPPY EVOLUTION', W / 2, topBarH * 0.65);
       ctx.shadowBlur = 0;
 
       // tap icon centre
@@ -550,7 +553,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.save();
       ctx.translate(W / 2, fingerY);
       ctx.scale(1 + tapPulse * 0.1, 1 + tapPulse * 0.1);
-      ctx.font = '48px serif';
+      ctx.font = `${Math.round(48 * sc)}px serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 18 + tapPulse * 8;
@@ -559,21 +562,21 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.restore();
       ctx.globalAlpha = 0.55 + tapPulse * 0.45;
       ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 18px monospace';
+      ctx.font = `bold ${Math.round(18 * sc)}px monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText('▲  TAP TO JUMP', W / 2, fingerY + 44);
+      ctx.fillText('▲  TAP TO JUMP', W / 2, fingerY + 44 * sc);
       ctx.globalAlpha = 1;
 
       // bottom bar
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(0, H - 46, W, 46);
+      ctx.fillRect(0, H - btmBarH, W, btmBarH);
       const pulse = 0.6 + Math.sin(introTime * 4.5) * 0.4;
       ctx.globalAlpha = pulse;
       ctx.fillStyle = '#00ff88';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
-      ctx.font = 'bold 16px "Orbitron", monospace';
+      ctx.font = `bold ${Math.round(16 * sc)}px "Orbitron", monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText('[ TAP / CLICK / SPACE ]', W / 2, H - 16);
+      ctx.fillText('[ TAP / CLICK / SPACE ]', W / 2, H - btmBarH * 0.35);
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
 
