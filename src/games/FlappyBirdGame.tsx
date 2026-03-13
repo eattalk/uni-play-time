@@ -118,6 +118,10 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     }, 1000);
   }, []);
 
+  const goToIntro = useCallback(() => {
+    setPhase('intro');
+  }, []);
+
   // ===== DRAWING =====
 
   const drawBird = (ctx: CanvasRenderingContext2D, bird: Bird, elapsedSec: number, stage: number) => {
