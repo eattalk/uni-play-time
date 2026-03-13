@@ -75,12 +75,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   }, []);
 
   const getDifficulty = (sec: number) => {
-    const t = Math.min(sec / maxTime, 1);
-    return {
-      pipeSpeedPx: (2.0 + t * 4.5) * 60,   // px/s (original was px/frame @ 60fps)
-      pipeInterval: PIPE_INTERVAL_BASE - t * (PIPE_INTERVAL_BASE - PIPE_INTERVAL_MIN),
-      gapHeight: Math.max(68, 140 - sec * 1.5),
-    };
+    // 무한 난이도: 시간에 따라 점점 빠르고 좁아짐 (상한 없음)
+    const speedPx = Math.min(120 + sec * 3.5, 600);   // 120→최대600 px/s
+    const interval = Math.max(0.70, 2.0 - sec * 0.018); // 2.0s → 최소 0.70s
+    const gap = Math.max(52, 148 - sec * 1.4);          // 148px → 최소 52px
+    return { pipeSpeedPx: speedPx, pipeInterval: interval, gapHeight: gap };
   };
 
   const formatTime = (ms: number) => {
@@ -615,7 +614,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       g.elapsedSec += dt;
       g.bgTime += dt;
 
-      if (g.elapsedSec >= maxTime) { endGame(); return; }
+      // 시간 제한 없음 — 파이프에 부딪힐 때까지 무한 플레이
 
       const diff = getDifficulty(g.elapsedSec);
 
