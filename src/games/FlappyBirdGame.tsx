@@ -59,6 +59,8 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     scorePopText: '',
     scorePopTimer: 0,    // seconds
     evolveFlashTimer: 0, // seconds
+    evolveText: '',      // e.g. "EAGLE EVOLVED!"
+    evolveTextTimer: 0,  // seconds (total 2.0s)
     // visual frame accumulator for bg star animation (time-based)
     bgTime: 0,
   });
