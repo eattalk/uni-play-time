@@ -37,9 +37,11 @@ const BIRD_STAGES = [
   { name: 'GOD',     color1: '#ffffff', color2: '#ffdd00', size: 19, glowSize: 30 },
 ];
 
+const STAR_SCORE_BONUS = 30; // 별 1개당 점수
+
 const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [phase, setPhase] = useState<GamePhase>('intro');
+  const [phase, setPhase] = useState<GamePhase>('instructions');
   const [countdown, setCountdown] = useState(3);
   const gameRef = useRef({
     bird: { x: BIRD_X, y: 250, vy: 0, radius: 13 } as Bird,
