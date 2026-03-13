@@ -614,7 +614,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       g.elapsedSec += dt;
       g.bgTime += dt;
 
-      if (g.elapsedSec >= maxTime) { endGame(); return; }
+      // 시간 제한 없음 — 파이프에 부딪힐 때까지 무한 플레이
 
       const diff = getDifficulty(g.elapsedSec);
 
