@@ -344,10 +344,17 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     let demoBirdY = 300;
     let demoBirdVy = 0;
     const demoPipes: { x: number; gapY: number; gapH: number }[] = [
-      { x: 250, gapY: 150, gapH: 120 },
-      { x: 420, gapY: 250, gapH: 120 },
+      { x: 250, gapY: 150, gapH: 130 },
+      { x: 430, gapY: 220, gapH: 130 },
+      { x: 610, gapY: 170, gapH: 130 },
     ];
-    let demoStar = { x: 445, y: 310, angle: 0 };
+    // 별 여러 개 — 파이프 사이에 배치
+    const demoStars: { x: number; y: number; angle: number }[] = [
+      { x: 340, y: 215, angle: 0 },
+      { x: 520, y: 285, angle: 0.5 },
+      { x: 700, y: 235, angle: 1.0 },
+      { x: 160, y: 260, angle: 1.5 },
+    ];
     let rafId = 0;
 
     const introLoop = (ts: number) => {
@@ -371,9 +378,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         p.x -= demoSpeed * dt;
         if (p.x < -60) { p.x = W + 20; p.gapY = 100 + Math.random() * 200; }
       });
-      demoStar.x -= demoSpeed * dt;
-      demoStar.angle += 2.4 * dt;
-      if (demoStar.x < -20) { demoStar.x = W + 50; demoStar.y = 150 + Math.random() * 250; }
+      demoStars.forEach(s => {
+        s.x -= demoSpeed * dt;
+        s.angle += 2.4 * dt;
+        if (s.x < -20) { s.x = W + 50 + Math.random() * 200; s.y = 100 + Math.random() * 300; }
+      });
 
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
       skyGrad.addColorStop(0, '#0b0d2a');
