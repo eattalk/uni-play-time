@@ -339,59 +339,141 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     if (!ctx) return;
     const W = canvas.width, H = canvas.height;
 
-    let introTime = 0;    // seconds
+    // --- Intro phases: 0=title(2s), 1=howto(2.5s), 2=evolution(2.5s), 3=loop(tap)
+    const PHASE_DURATIONS = [2.0, 2.5, 2.5];
+    let introTime = 0;
     let lastTs = performance.now();
-    let demoBirdY = 300;
-    let demoBirdVy = 0;
-    const demoPipes: { x: number; gapY: number; gapH: number }[] = [
-      { x: 250, gapY: 150, gapH: 120 },
-      { x: 420, gapY: 250, gapH: 120 },
-    ];
-    let demoStar = { x: 445, y: 310, angle: 0 };
     let rafId = 0;
 
-    const introLoop = (ts: number) => {
-      const rawDt = (ts - lastTs) / 1000;
-      const dt = Math.min(rawDt, 0.033);
-      lastTs = ts;
-      introTime += dt;
+    // Demo bird state (used in howto & loop)
+    let demoBirdY = H / 2;
+    let demoBirdVy = 0;
+    const demoPipes: { x: number; gapY: number; gapH: number }[] = [
+      { x: W + 10, gapY: 150, gapH: 120 },
+      { x: W + 220, gapY: 250, gapH: 120 },
+    ];
+    const demoStars: { x: number; y: number; angle: number }[] = [
+      { x: W + 140, y: 200, angle: 0 },
+      { x: W + 320, y: 310, angle: 1 },
+    ];
 
-      // Bird auto-flap every ~0.53s
-      const flapInterval = 0.53;
-      if (Math.floor(introTime / flapInterval) > Math.floor((introTime - dt) / flapInterval)) {
+    // Background stars (parallax layers)
+    const bgStars = Array.from({ length: 60 }, (_, i) => ({
+      x: Math.random() * W, y: Math.random() * H * 0.85,
+      size: Math.random() * 2 + 0.5, speed: 0.4 + Math.random() * 0.6,
+    }));
+
+    const drawBgStars = (dt: number, t: number) => {
+      bgStars.forEach(s => {
+        s.x -= s.speed * 30 * dt;
+        if (s.x < 0) { s.x = W; s.y = Math.random() * H * 0.85; }
+        ctx.fillStyle = `rgba(255,255,255,${0.25 + Math.sin(t * 2.5 + s.x) * 0.15})`;
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+      });
+    };
+
+    const drawSky = () => {
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+      skyGrad.addColorStop(0, '#060820');
+      skyGrad.addColorStop(0.55, '#0e0c30');
+      skyGrad.addColorStop(1, '#07090f');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, W, H);
+    };
+
+    const drawGround = () => {
+      const gg = ctx.createLinearGradient(0, H - 30, 0, H);
+      gg.addColorStop(0, '#1a4a20'); gg.addColorStop(1, '#060f08');
+      ctx.fillStyle = gg;
+      ctx.fillRect(0, H - 30, W, 30);
+    };
+
+    // ---- Phase renderers ----
+    const drawTitlePhase = (t: number, phaseFrac: number) => {
+      // Fade in
+      const alpha = Math.min(1, phaseFrac * 3);
+      // Giant pulsing title
+      const titlePulse = 1 + Math.sin(t * 3.5) * 0.04;
+
+      // Title glow
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(W / 2, H * 0.28);
+      ctx.scale(titlePulse, titlePulse);
+      ctx.font = 'bold 26px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 30 + Math.sin(t * 4) * 12;
+      ctx.fillStyle = '#00ff88';
+      ctx.fillText('FLAPPY', 0, 0);
+      ctx.shadowColor = '#00ccff';
+      ctx.shadowBlur = 28 + Math.sin(t * 3) * 10;
+      ctx.fillStyle = '#00ccff';
+      ctx.fillText('EVOLUTION', 0, 36);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      // Animated bird showcase in center, cycling stages
+      const showStage = Math.floor(t / 0.55) % BIRD_STAGES.length;
+      const stageFrac = (t % 0.55) / 0.55;
+      const scaleIn = stageFrac < 0.2 ? stageFrac / 0.2 : 1;
+      ctx.save();
+      ctx.globalAlpha = alpha * Math.min(1, scaleIn);
+      ctx.translate(W / 2, H * 0.55);
+      ctx.scale(scaleIn * 1.8, scaleIn * 1.8);
+      drawBird(ctx, { x: 0, y: 0, vy: 0, radius: BIRD_STAGES[showStage].size }, t, showStage);
+      ctx.restore();
+
+      // Stage name label
+      ctx.save();
+      ctx.globalAlpha = alpha * Math.min(1, stageFrac * 4);
+      ctx.fillStyle = BIRD_STAGES[showStage].color1;
+      ctx.font = 'bold 14px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = BIRD_STAGES[showStage].color1;
+      ctx.shadowBlur = 12;
+      ctx.fillText(BIRD_STAGES[showStage].name, W / 2, H * 0.55 + 36);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+
+      // Tap prompt (appears after 1.2s)
+      if (phaseFrac > 0.6) {
+        const pulse = 0.6 + Math.sin(t * 6) * 0.4;
+        ctx.globalAlpha = pulse * alpha;
+        ctx.fillStyle = '#00ff88';
+        ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
+        ctx.font = 'bold 14px "Orbitron", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('[ TAP TO START ]', W / 2, H - 20);
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      }
+    };
+
+    const drawHowtoPhase = (t: number, phaseFrac: number, dt: number) => {
+      const alpha = Math.min(1, phaseFrac * 4);
+
+      // Animate demo bird
+      const flapInterval = 0.55;
+      if (Math.floor(t / flapInterval) > Math.floor((t - dt) / flapInterval)) {
         demoBirdVy = FLAP_FORCE;
       }
       demoBirdVy += GRAVITY * dt;
       demoBirdY += demoBirdVy * dt;
       if (demoBirdY > H - 60) { demoBirdY = H - 60; demoBirdVy = 0; }
-      if (demoBirdY < 40) { demoBirdY = 40; demoBirdVy = 0; }
+      if (demoBirdY < 44) { demoBirdY = 44; demoBirdVy = 0; }
 
-      const demoSpeed = 90; // px/s
+      const demoSpeed = 100;
       demoPipes.forEach(p => {
         p.x -= demoSpeed * dt;
-        if (p.x < -60) { p.x = W + 20; p.gapY = 100 + Math.random() * 200; }
+        if (p.x < -60) { p.x = W + 10; p.gapY = 100 + Math.random() * 200; }
       });
-      demoStar.x -= demoSpeed * dt;
-      demoStar.angle += 2.4 * dt;
-      if (demoStar.x < -20) { demoStar.x = W + 50; demoStar.y = 150 + Math.random() * 250; }
+      demoStars.forEach(s => {
+        s.x -= demoSpeed * dt;
+        s.angle += 2.5 * dt;
+        if (s.x < -20) { s.x = W + Math.random() * 100; s.y = 80 + Math.random() * (H - 130); }
+      });
 
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
-      skyGrad.addColorStop(0, '#0b0d2a');
-      skyGrad.addColorStop(0.5, '#1a1040');
-      skyGrad.addColorStop(1, '#0a0e1a');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, W, H);
-
-      for (let i = 0; i < 30; i++) {
-        const sx = ((i * 97 + introTime * 18) % (W + 20)) - 10;
-        const sy = (i * 73) % (H * 0.7);
-        ctx.fillStyle = `rgba(255,255,255,${0.2 + Math.sin(introTime * 1.8 + i) * 0.15})`;
-        ctx.fillRect(sx, sy, 1.5, 1.5);
-      }
-
-      ctx.fillStyle = '#1a4a20';
-      ctx.fillRect(0, H - 30, W, 30);
-
+      ctx.globalAlpha = alpha;
       demoPipes.forEach(p => {
         const gr = ctx.createLinearGradient(p.x, 0, p.x + 50, 0);
         gr.addColorStop(0, '#1a8a40'); gr.addColorStop(0.5, '#33ee66'); gr.addColorStop(1, '#1a8a40');
@@ -403,53 +485,185 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         ctx.fillRect(p.x - 5, bY, 60, 15);
       });
 
-      const demoStage = Math.floor(introTime / 1.5) % BIRD_STAGES.length;
-      drawBird(ctx, { x: 90, y: demoBirdY, vy: demoBirdVy, radius: BIRD_STAGES[demoStage].size }, introTime, demoStage);
+      // Draw demo stars
+      demoStars.forEach(s => {
+        ctx.save();
+        ctx.globalAlpha = alpha * (0.7 + Math.sin(t * 4) * 0.3);
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.angle);
+        ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 18;
+        ctx.fillStyle = '#ffee44';
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+          ctx.lineTo(Math.cos(a) * 10, Math.sin(a) * 10);
+          ctx.lineTo(Math.cos(a + Math.PI / 5) * 4, Math.sin(a + Math.PI / 5) * 4);
+        }
+        ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+        ctx.restore();
+      });
 
-      const fingerY = H / 2 - 30;
-      const tapPulse = Math.sin(introTime * 6);
-      const tapScale = 1 + tapPulse * 0.12;
+      ctx.globalAlpha = alpha;
+      drawBird(ctx, { x: 80, y: demoBirdY, vy: demoBirdVy, radius: 13 }, t, 0);
+      ctx.globalAlpha = 1;
 
+      // Instruction panel
+      const panelX = W / 2 - 90, panelY = H * 0.55, panelW = 180, panelH = 110;
       ctx.save();
-      ctx.translate(W / 2, fingerY);
-      ctx.scale(tapScale, tapScale);
-      ctx.font = '52px serif';
+      ctx.globalAlpha = alpha * 0.88;
+      ctx.fillStyle = '#000000cc';
+      ctx.strokeStyle = '#00ff8855';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(panelX, panelY, panelW, panelH, 10);
+      ctx.fill(); ctx.stroke();
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#00ff88';
+      ctx.font = 'bold 12px "Orbitron", monospace';
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = '#00ff88';
-      ctx.shadowBlur = 20 + tapPulse * 10;
-      ctx.fillText('👆', 0, 0);
+      ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 8;
+      ctx.fillText('HOW TO PLAY', W / 2, panelY + 22);
+      ctx.shadowBlur = 0;
+
+      ctx.font = '11px monospace';
+      ctx.fillStyle = '#ccffee';
+      ctx.fillText('👆 TAP / CLICK / SPACE', W / 2, panelY + 44);
+      ctx.fillStyle = '#88ddff';
+      ctx.fillText('to make the bird JUMP', W / 2, panelY + 60);
+      ctx.fillStyle = '#ffee44';
+      ctx.fillText('⭐ catch stars = -2s', W / 2, panelY + 76);
+      ctx.fillStyle = '#ff88aa';
+      ctx.fillText('avoid pipes · survive!', W / 2, panelY + 92);
+      ctx.restore();
+
+      // Tap prompt
+      const pulse = 0.6 + Math.sin(t * 6) * 0.4;
+      ctx.globalAlpha = pulse * alpha;
+      ctx.fillStyle = '#00ff88';
+      ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
+      ctx.font = 'bold 14px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('[ TAP TO START ]', W / 2, H - 20);
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    };
+
+    const drawEvoPhase = (t: number, phaseFrac: number) => {
+      const alpha = Math.min(1, phaseFrac * 4);
+
+      // Title
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#ffdd00';
+      ctx.shadowColor = '#ffdd00'; ctx.shadowBlur = 16;
+      ctx.font = 'bold 15px "Orbitron", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('EVOLUTION STAGES', W / 2, 36);
       ctx.shadowBlur = 0;
       ctx.restore();
 
-      const arrowAlpha = 0.5 + tapPulse * 0.5;
-      ctx.globalAlpha = arrowAlpha;
-      ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 20px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('▲  JUMP', W / 2, fingerY + 50);
-      ctx.globalAlpha = 1;
+      // Draw all stages in a grid (2 rows × 4 columns... actually 7 birds: row1=4, row2=3)
+      const cols = 4;
+      const cellW = W / cols;
+      const cellH = 80;
+      const startY = 65;
 
-      ctx.fillStyle = '#00000099';
-      ctx.fillRect(0, 0, W, 55);
-      ctx.fillStyle = '#00ff88';
-      ctx.font = 'bold 20px "Orbitron", monospace';
-      ctx.textAlign = 'center';
-      ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 12;
-      ctx.fillText('FLAPPY EVOLUTION', W / 2, 36);
-      ctx.shadowBlur = 0;
+      BIRD_STAGES.forEach((stage, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const cx = cellW * col + cellW / 2;
+        const cy = startY + row * cellH + cellH * 0.4;
 
-      ctx.fillStyle = '#00000099';
-      ctx.fillRect(0, H - 50, W, 50);
-      const pulse = 0.65 + Math.sin(introTime * 5) * 0.35;
-      ctx.globalAlpha = pulse;
+        // Stagger fade-in
+        const staggerAlpha = Math.min(1, Math.max(0, (phaseFrac * BIRD_STAGES.length - i) * 2));
+
+        ctx.save();
+        ctx.globalAlpha = alpha * staggerAlpha;
+
+        // Highlight current cycling stage
+        const highlight = Math.floor(t / 0.45) % BIRD_STAGES.length === i;
+        if (highlight) {
+          ctx.fillStyle = stage.color1 + '22';
+          ctx.beginPath();
+          ctx.roundRect(cellW * col + 4, startY + row * cellH, cellW - 8, cellH - 4, 6);
+          ctx.fill();
+          ctx.strokeStyle = stage.color1 + '88';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        // Bird
+        ctx.translate(cx, cy);
+        drawBird(ctx, { x: 0, y: 0, vy: 0, radius: stage.size }, t + i * 0.3, i);
+        ctx.translate(-cx, -cy);
+
+        // Label
+        ctx.fillStyle = stage.color1;
+        ctx.font = `bold ${highlight ? 9 : 8}px "Orbitron", monospace`;
+        ctx.textAlign = 'center';
+        if (highlight) { ctx.shadowColor = stage.color1; ctx.shadowBlur = 8; }
+        ctx.fillText(stage.name, cx, cy + stage.size + 14);
+        ctx.shadowBlur = 0;
+
+        // Pipes needed
+        const pipesNeeded = i === 0 ? 'START' : `${i * PIPES_PER_EVOLUTION} pipes`;
+        ctx.fillStyle = '#ffffff55';
+        ctx.font = '7px monospace';
+        ctx.fillText(pipesNeeded, cx, cy + stage.size + 24);
+        ctx.restore();
+      });
+
+      // Tap prompt
+      const pulse = 0.6 + Math.sin(t * 6) * 0.4;
+      ctx.globalAlpha = pulse * alpha;
       ctx.fillStyle = '#00ff88';
-      ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15;
-      ctx.font = 'bold 17px "Orbitron", monospace';
+      ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 14;
+      ctx.font = 'bold 14px "Orbitron", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('[ TAP TO START ]', W / 2, H - 18);
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
+      ctx.fillText('[ TAP TO START ]', W / 2, H - 20);
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    };
+
+    const introLoop = (ts: number) => {
+      const rawDt = (ts - lastTs) / 1000;
+      const dt = Math.min(rawDt, 0.033);
+      lastTs = ts;
+      introTime += dt;
+
+      drawSky();
+      drawBgStars(dt, introTime);
+      drawGround();
+
+      // Determine which sub-phase we're in
+      let accum = 0;
+      let subPhase = PHASE_DURATIONS.length; // "loop" phase
+      let subTime = introTime;
+      for (let i = 0; i < PHASE_DURATIONS.length; i++) {
+        if (introTime < accum + PHASE_DURATIONS[i]) {
+          subPhase = i;
+          subTime = introTime - accum;
+          break;
+        }
+        accum += PHASE_DURATIONS[i];
+      }
+      const loopTime = introTime - accum; // time in looping phase
+
+      if (subPhase === 0) {
+        drawTitlePhase(introTime, subTime / PHASE_DURATIONS[0]);
+      } else if (subPhase === 1) {
+        drawHowtoPhase(introTime, subTime / PHASE_DURATIONS[1], dt);
+      } else if (subPhase === 2) {
+        drawEvoPhase(introTime, subTime / PHASE_DURATIONS[2]);
+      } else {
+        // Looping phase: cycle through howto and evo alternately
+        const cycleLen = 3.0;
+        const cyclePos = loopTime % (cycleLen * 2);
+        if (cyclePos < cycleLen) {
+          drawHowtoPhase(introTime, Math.min(1, cyclePos / 0.5), dt);
+        } else {
+          drawEvoPhase(introTime, Math.min(1, (cyclePos - cycleLen) / 0.5));
+        }
+      }
 
       rafId = requestAnimationFrame(introLoop);
     };
@@ -520,8 +734,17 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         const gapH = diff.gapHeight;
         const gapY = Math.random() * (H - 30 - gapH - 80) + 40;
         g.pipes.push({ x: W, gapY, gapHeight: gapH, width: 50, passed: false });
-        if (Math.random() < 0.45) {
+        // Star in pipe gap (75% chance)
+        if (Math.random() < 0.75) {
           g.stars.push({ x: W + 25, y: gapY + gapH / 2, radius: 10, collected: false, angle: 0 });
+        }
+        // Extra floating star above/below gap (40% chance)
+        if (Math.random() < 0.40) {
+          const floatY = Math.random() < 0.5
+            ? gapY - 30 - Math.random() * 60   // above top pipe opening
+            : gapY + gapH + 30 + Math.random() * 60; // below bottom pipe opening
+          const clampedY = Math.max(50, Math.min(H - 60, floatY));
+          g.stars.push({ x: W + 80, y: clampedY, radius: 10, collected: false, angle: 0 });
         }
       }
 
