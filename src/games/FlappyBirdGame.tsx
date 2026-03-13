@@ -795,14 +795,12 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   }, [phase, flap, startCountdown]);
 
   return (
-    <div className="relative w-full h-screen flex items-center justify-center bg-background overflow-hidden">
+    <div ref={containerRef} className="relative w-full h-screen flex items-center justify-center bg-background overflow-hidden">
       <canvas
         ref={canvasRef}
-        width={400}
-        height={600}
-        className="border border-border rounded-lg cursor-pointer max-w-full max-h-full"
+        className="cursor-pointer"
         onClick={() => { if (phase === 'intro') startCountdown(); else flap(); }}
-        style={{ imageRendering: 'pixelated' }}
+        style={{ width: '100%', height: '100%', display: 'block' }}
       />
       {phase === 'countdown' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
