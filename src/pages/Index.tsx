@@ -6,9 +6,9 @@ const Index = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center p-8">
-        <h1 className="text-3xl font-arcade text-neon-green mb-4">FLAPPY SHOOTER</h1>
+        <h1 className="text-3xl font-arcade text-neon-green mb-4">FLAPPY EVOLUTION</h1>
         <p className="text-sm font-display text-muted-foreground mb-8">
-          A retro arcade web game
+          진화하며 장애물을 피하는 아케이드 게임
         </p>
         <button
           onClick={() => navigate('/webview/games/flappy?table_name=demo')}
@@ -16,9 +16,6 @@ const Index = () => {
         >
           PLAY NOW
         </button>
-        <p className="text-xs text-muted-foreground mt-6 font-display">
-          Access via: /webview/games/flappy?table_name=your_table
-        </p>
       </div>
     </div>
   );
