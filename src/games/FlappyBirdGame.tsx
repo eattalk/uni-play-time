@@ -332,7 +332,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.fillStyle = '#00ffcc';
     ctx.font = 'bold 8px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('-2s', 0, star.radius + 12);
+    ctx.fillText('+★ -2s', 0, star.radius + 12);
     ctx.restore();
   };
 
