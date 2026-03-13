@@ -447,13 +447,13 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
       ctx.fillStyle = '#00000099';
       ctx.fillRect(0, H - 50, W, 50);
-      const pulse = 0.65 + Math.sin(introTime * 5) * 0.35;
-      ctx.globalAlpha = pulse;
+      ctx.fillStyle = '#00000099';
+      ctx.fillRect(0, H - 50, W, 50);
       ctx.fillStyle = '#00ff88';
       ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15;
       ctx.font = 'bold 17px "Orbitron", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('[ TAP TO START ]', W / 2, H - 18);
+      ctx.fillText('[ READY? TAP OR CLICK ]', W / 2, H - 18);
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
 
