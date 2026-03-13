@@ -341,21 +341,25 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
     let introTime = 0;
     let lastTs = 0;
+
+    const BIRD_X_DEMO = 90;
+    const GAP_H = 150;
+    const DEMO_SPEED = 100; // px/s
+    const PIPE_SPACING = 220; // px between pipes
+
+    // 새 물리
     let demoBirdY = H / 2;
     let demoBirdVy = 0;
 
-    // 파이프 2개
+    // 파이프: 새가 통과할 수 있도록 gapY를 새의 현재 y 근처로 동적 설정
+    // 초기 배치: 화면 오른쪽에서 시작, 파이프 간격으로 배치
     const pipes = [
-      { x: 260, gapY: 160, gapH: 145 },
-      { x: 480, gapY: 220, gapH: 145 },
+      { x: W * 0.55, gapY: H / 2 - GAP_H / 2 - 20, gapH: GAP_H },
+      { x: W * 0.55 + PIPE_SPACING, gapY: H / 2 - GAP_H / 2 + 20, gapH: GAP_H },
     ];
-    // 별: 파이프 gap 안 + 파이프 사이 중간 허공 (총 4개)
-    const stars = [
-      { x: 285, y: 230, a: 0   },  // pipe0 gap 안
-      { x: 370, y: 270, a: 0.8 },  // pipe0↔pipe1 사이 허공
-      { x: 505, y: 290, a: 1.6 },  // pipe1 gap 안
-      { x: 595, y: 230, a: 2.4 },  // pipe1↔오른쪽 끝 사이 허공
-    ];
+
+    // 별: 각 파이프 gap 중심 + 파이프 사이 중간 허공 (파이프 위치 따라 이동)
+    // stars는 pipes에 연동해서 생성 (아래 loop에서 파이프 위치 기준으로 그림)
 
     const drawStar5 = (x: number, y: number, angle: number, r: number) => {
       ctx.save();
@@ -417,31 +421,50 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       ctx.restore();
     };
 
+    // 별 각도 (전역)
+    let starAngle = 0;
+
     let rafId = 0;
     const loop = (ts: number) => {
       if (lastTs === 0) lastTs = ts;
       const dt = Math.min((ts - lastTs) / 1000, 0.033);
       lastTs = ts;
       introTime += dt;
+      starAngle += 2.5 * dt;
 
-      // Auto-flap every 0.58s
-      if (Math.floor(introTime / 0.58) > Math.floor((introTime - dt) / 0.58)) {
-        demoBirdVy = FLAP_FORCE * 0.9;
+      // 새가 다음 파이프에 접근할 때 미리 flap (새 y가 파이프 gap 중심 근처 오도록 예측 flap)
+      // 가장 가까운 파이프 찾기
+      const nextPipe = pipes.filter(p => p.x + 50 > BIRD_X_DEMO).sort((a, b) => a.x - b.x)[0];
+      if (nextPipe) {
+        const gapCenter = nextPipe.gapY + nextPipe.gapH / 2;
+        const dist = nextPipe.x - BIRD_X_DEMO;
+        // 파이프가 60~120px 앞에 있고, 새가 gap 중심보다 위에 있으면 flap 억제, 아래면 flap
+        if (dist > 0 && dist < 180 && demoBirdY > gapCenter - 20) {
+          demoBirdVy = FLAP_FORCE * 0.88;
+        } else if (demoBirdY > H * 0.6) {
+          // 너무 낮으면 강제 flap
+          demoBirdVy = FLAP_FORCE * 0.85;
+        }
+      } else {
+        // 파이프 없으면 주기적 flap
+        if (Math.floor(introTime / 0.55) > Math.floor((introTime - dt) / 0.55)) {
+          demoBirdVy = FLAP_FORCE * 0.85;
+        }
       }
+
       demoBirdVy += GRAVITY * dt;
       demoBirdY += demoBirdVy * dt;
       if (demoBirdY > H - 55) { demoBirdY = H - 55; demoBirdVy = 0; }
       if (demoBirdY < 45)     { demoBirdY = 45;     demoBirdVy = 0; }
 
-      const speed = 85;
+      const speed = DEMO_SPEED;
       pipes.forEach(p => {
         p.x -= speed * dt;
-        if (p.x < -65) { p.x = W + 30; p.gapY = 120 + Math.random() * 180; }
-      });
-      stars.forEach(s => {
-        s.x -= speed * dt;
-        s.a  += 2.5 * dt;
-        if (s.x < -20) { s.x = W + 60 + Math.random() * 140; s.y = 110 + Math.random() * 290; }
+        if (p.x < -65) {
+          // 리스폰 시 gapY를 현재 새의 y에 맞춰 설정 → 새가 항상 통과 가능
+          p.x = W + PIPE_SPACING;
+          p.gapY = Math.min(Math.max(demoBirdY - GAP_H / 2, 60), H - 60 - GAP_H);
+        }
       });
 
       // --- Draw background ---
@@ -473,12 +496,23 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         ctx.fillRect(p.x - 5, bY, 60, 15);
       });
 
-      // --- Draw stars ---
-      stars.forEach(s => drawStar5(s.x, s.y, s.a, 10));
+      // --- Draw stars: 파이프 gap 중심 + 파이프 사이 중간 허공 ---
+      for (let i = 0; i < pipes.length; i++) {
+        const p = pipes[i];
+        // 파이프 gap 중심 별
+        const gapCenter = p.gapY + p.gapH / 2;
+        drawStar5(p.x + 25, gapCenter, starAngle + i * 1.2, 10);
+        // 파이프 사이 중간 허공 별 (다음 파이프 또는 W/2 기준)
+        const nextP = pipes[(i + 1) % pipes.length];
+        const midX = (p.x + 25 + nextP.x + 25) / 2;
+        if (midX > 0 && midX < W) {
+          drawStar5(midX, H / 2, starAngle + i * 1.8 + 0.9, 10);
+        }
+      }
 
       // --- Draw bird ---
       const demoStage = Math.floor(introTime / 1.8) % BIRD_STAGES.length;
-      drawBirdSimple(90, demoBirdY, demoBirdVy, introTime, demoStage);
+      drawBirdSimple(BIRD_X_DEMO, demoBirdY, demoBirdVy, introTime, demoStage);
 
       // --- UI overlays ---
       // top bar
