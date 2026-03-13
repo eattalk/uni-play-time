@@ -344,7 +344,6 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     let demoBirdY = H / 2;
     let demoBirdVy = FLAP_FORCE * 0.5; // start with slight upward push
     const demoSpeed = 110; // px/s
-    const demoPipeInterval = W / demoSpeed; // time for a pipe to cross the screen
     // Space pipes so bird always faces one
     const demoPipes: { x: number; gapY: number; gapH: number }[] = [
       { x: W * 0.55, gapY: 160, gapH: 130 },
