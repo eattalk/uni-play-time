@@ -343,9 +343,10 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.restore();
   };
 
-  // ===== INTRO SCREEN =====
+  // ===== INTRO SCREEN (5초 후 자동 시작) =====
   useEffect(() => {
     if (phase !== 'intro') return;
+    const autoStartTimer = setTimeout(() => startCountdown(), 5000);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
