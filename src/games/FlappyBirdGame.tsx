@@ -829,6 +829,40 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
           onClick={() => { if (phase === 'intro') startCountdown(); else flap(); }}
           style={{ width: GAME_W, height: GAME_H, display: 'block' }}
         />
+        {/* 인트로 오버레이: PLAY NOW 버튼 + 자동 시작 카운트다운 */}
+        {phase === 'intro' && (
+          <div className="absolute inset-x-0 z-10 flex flex-col items-center gap-3"
+            style={{ bottom: 56 }}>
+            <button
+              onClick={startCountdown}
+              style={{
+                padding: '12px 40px',
+                background: 'linear-gradient(135deg, #00ff88 0%, #00ccff 100%)',
+                color: '#000',
+                fontFamily: '"Orbitron", monospace',
+                fontWeight: 900,
+                fontSize: 18,
+                letterSpacing: 3,
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                boxShadow: '0 0 24px #00ff88aa, 0 0 8px #00ccffaa',
+                textTransform: 'uppercase',
+              }}
+            >
+              ▶ PLAY NOW
+            </button>
+            <p style={{
+              color: '#00ff8899',
+              fontFamily: 'monospace',
+              fontSize: 13,
+              letterSpacing: 1,
+              textShadow: '0 0 8px #00ff88',
+            }}>
+              {introCountdown > 0 ? `${introCountdown}초 후 자동 시작...` : '시작하는 중...'}
+            </p>
+          </div>
+        )}
         {phase === 'countdown' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-10">
             <div
