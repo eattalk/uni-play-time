@@ -74,11 +74,14 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     canvas.height = GAME_H;
   }, []);
 
+  const MAX_GAME_SEC = 90; // 90초 후 자동 종료
+
   const getDifficulty = (sec: number) => {
-    // 무한 난이도: 시간에 따라 점점 빠르고 좁아짐 (상한 없음)
-    const speedPx = Math.min(120 + sec * 3.5, 600);   // 120→최대600 px/s
-    const interval = Math.max(0.70, 2.0 - sec * 0.018); // 2.0s → 최소 0.70s
-    const gap = Math.max(52, 148 - sec * 1.4);          // 148px → 최소 52px
+    // 난이도 가파르게 상승: 90초를 향해 점점 극한으로
+    const t = Math.min(sec / MAX_GAME_SEC, 1); // 0~1 정규화
+    const speedPx = 120 + t * t * 580;           // 120 → 700 px/s (제곱 가속)
+    const interval = Math.max(0.55, 2.0 - t * 1.5); // 2.0s → 최소 0.55s
+    const gap = Math.max(48, 160 - t * t * 120);     // 160px → 최소 48px (제곱 감소)
     return { pipeSpeedPx: speedPx, pipeInterval: interval, gapHeight: gap };
   };
 
@@ -340,9 +343,10 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     ctx.restore();
   };
 
-  // ===== INTRO SCREEN =====
+  // ===== INTRO SCREEN (5초 후 자동 시작) =====
   useEffect(() => {
     if (phase !== 'intro') return;
+    const autoStartTimer = setTimeout(() => startCountdown(), 5000);
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -575,7 +579,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     };
 
     rafId = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(rafId); };
+    return () => { cancelAnimationFrame(rafId); clearTimeout(autoStartTimer); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
@@ -614,7 +618,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       g.elapsedSec += dt;
       g.bgTime += dt;
 
-      // 시간 제한 없음 — 파이프에 부딪힐 때까지 무한 플레이
+      // 90초 자동 종료
+      if (g.elapsedSec >= MAX_GAME_SEC) {
+        endGame();
+        return;
+      }
 
       const diff = getDifficulty(g.elapsedSec);
 
@@ -737,10 +745,16 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       const hudH = Math.round(50 * sc);
       ctx.fillStyle = '#00000099';
       ctx.fillRect(0, 0, W, hudH);
-      ctx.fillStyle = '#00ffcc';
+      const remaining = Math.max(0, MAX_GAME_SEC - g.elapsedSec);
+      const timeColor = remaining < 15 ? '#ff4444' : remaining < 30 ? '#ffaa00' : '#00ffcc';
+      ctx.fillStyle = timeColor;
       ctx.font = `bold ${Math.round(15 * sc)}px "Orbitron", monospace`;
       ctx.textAlign = 'left';
-      ctx.fillText(`⏱ ${formatTime(g.elapsedSec * 1000)}`, 10 * sc, hudH * 0.62);
+      if (remaining < 15) {
+        ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 10 + Math.sin(g.elapsedSec * 10) * 6;
+      }
+      ctx.fillText(`⏱ ${Math.ceil(remaining)}s`, 10 * sc, hudH * 0.62);
+      ctx.shadowBlur = 0;
       ctx.fillStyle = '#ffdd00';
       ctx.textAlign = 'center';
       ctx.font = `bold ${Math.round(18 * sc)}px "Orbitron", monospace`;
