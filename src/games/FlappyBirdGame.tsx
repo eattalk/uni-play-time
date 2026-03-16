@@ -745,10 +745,16 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       const hudH = Math.round(50 * sc);
       ctx.fillStyle = '#00000099';
       ctx.fillRect(0, 0, W, hudH);
-      ctx.fillStyle = '#00ffcc';
+      const remaining = Math.max(0, MAX_GAME_SEC - g.elapsedSec);
+      const timeColor = remaining < 15 ? '#ff4444' : remaining < 30 ? '#ffaa00' : '#00ffcc';
+      ctx.fillStyle = timeColor;
       ctx.font = `bold ${Math.round(15 * sc)}px "Orbitron", monospace`;
       ctx.textAlign = 'left';
-      ctx.fillText(`⏱ ${formatTime(g.elapsedSec * 1000)}`, 10 * sc, hudH * 0.62);
+      if (remaining < 15) {
+        ctx.shadowColor = '#ff4444'; ctx.shadowBlur = 10 + Math.sin(g.elapsedSec * 10) * 6;
+      }
+      ctx.fillText(`⏱ ${Math.ceil(remaining)}s`, 10 * sc, hudH * 0.62);
+      ctx.shadowBlur = 0;
       ctx.fillStyle = '#ffdd00';
       ctx.textAlign = 'center';
       ctx.font = `bold ${Math.round(18 * sc)}px "Orbitron", monospace`;
