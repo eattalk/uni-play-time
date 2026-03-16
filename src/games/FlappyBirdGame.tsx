@@ -74,11 +74,14 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     canvas.height = GAME_H;
   }, []);
 
+  const MAX_GAME_SEC = 90; // 90초 후 자동 종료
+
   const getDifficulty = (sec: number) => {
-    // 무한 난이도: 시간에 따라 점점 빠르고 좁아짐 (상한 없음)
-    const speedPx = Math.min(120 + sec * 3.5, 600);   // 120→최대600 px/s
-    const interval = Math.max(0.70, 2.0 - sec * 0.018); // 2.0s → 최소 0.70s
-    const gap = Math.max(52, 148 - sec * 1.4);          // 148px → 최소 52px
+    // 난이도 가파르게 상승: 90초를 향해 점점 극한으로
+    const t = Math.min(sec / MAX_GAME_SEC, 1); // 0~1 정규화
+    const speedPx = 120 + t * t * 580;           // 120 → 700 px/s (제곱 가속)
+    const interval = Math.max(0.55, 2.0 - t * 1.5); // 2.0s → 최소 0.55s
+    const gap = Math.max(48, 160 - t * t * 120);     // 160px → 최소 48px (제곱 감소)
     return { pipeSpeedPx: speedPx, pipeInterval: interval, gapHeight: gap };
   };
 
