@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import {
   playFlapSound, playScoreSound, playStarSound,
   playHitSound, playGameOverSound, playCountdownBeep, playEvolutionSound,
+  startBgm, stopBgm, setBgmVolume,
 } from './sounds';
 
 interface GameProps {
@@ -348,6 +349,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   useEffect(() => {
     if (phase !== 'intro') return;
     setIntroCountdown(5);
+    startBgm(0.55); // 인트로부터 BGM 시작
     const autoStartTimer = setTimeout(() => startCountdown(), 5000);
     // 1초마다 카운트다운 표시 업데이트
     const tickInterval = setInterval(() => setIntroCountdown(prev => Math.max(0, prev - 1)), 1000);
@@ -453,22 +455,21 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       // 새가 다음 파이프에 접근할 때 미리 flap (새 y가 파이프 gap 중심 근처 오도록 예측 flap)
       // 가장 가까운 파이프 찾기
       const nextPipe = pipes.filter(p => p.x + 50 > BIRD_X_DEMO).sort((a, b) => a.x - b.x)[0];
+      let didFlap = false;
       if (nextPipe) {
         const gapCenter = nextPipe.gapY + nextPipe.gapH / 2;
         const dist = nextPipe.x - BIRD_X_DEMO;
-        // 파이프가 60~120px 앞에 있고, 새가 gap 중심보다 위에 있으면 flap 억제, 아래면 flap
         if (dist > 0 && dist < 180 && demoBirdY > gapCenter - 20) {
-          demoBirdVy = FLAP_FORCE * 0.88;
+          if (demoBirdVy > -50) { demoBirdVy = FLAP_FORCE * 0.88; didFlap = true; }
         } else if (demoBirdY > H * 0.6) {
-          // 너무 낮으면 강제 flap
-          demoBirdVy = FLAP_FORCE * 0.85;
+          if (demoBirdVy > -50) { demoBirdVy = FLAP_FORCE * 0.85; didFlap = true; }
         }
       } else {
-        // 파이프 없으면 주기적 flap
         if (Math.floor(introTime / 0.55) > Math.floor((introTime - dt) / 0.55)) {
-          demoBirdVy = FLAP_FORCE * 0.85;
+          demoBirdVy = FLAP_FORCE * 0.85; didFlap = true;
         }
       }
+      if (didFlap) playFlapSound(0.08); // 인트로는 살짝 작게
 
       demoBirdVy += GRAVITY * dt;
       demoBirdY += demoBirdVy * dt;
@@ -602,6 +603,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
     const endGame = () => {
       g.playing = false;
+      stopBgm();
       playGameOverSound();
       setPhase('gameover');
       // 동점 방지: 밀리초 단위 미세 고유값을 소수점으로 추가
