@@ -2,8 +2,22 @@
 let audioCtx: AudioContext | null = null;
 
 function getCtx(): AudioContext {
-  if (!audioCtx) audioCtx = new AudioContext();
+  if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
   return audioCtx;
+}
+
+// iOS/Android: AudioContext는 유저 터치 이후에만 resume 가능
+export function unlockAudio() {
+  const ctx = getCtx();
+  if (ctx.state === 'suspended') {
+    ctx.resume();
+  }
+  // 무음 버퍼 재생으로 잠금 해제 (iOS Safari 전용)
+  const buf = ctx.createBuffer(1, 1, 22050);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  src.start(0);
 }
 
 export function playFlapSound(volume = 0.15) {

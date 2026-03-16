@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import {
   playFlapSound, playScoreSound, playStarSound,
   playHitSound, playGameOverSound, playCountdownBeep, playEvolutionSound,
-  startBgm, stopBgm, setBgmVolume,
+  startBgm, stopBgm, setBgmVolume, unlockAudio,
 } from './sounds';
 
 interface GameProps {
@@ -835,15 +835,16 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         <canvas
           ref={canvasRef}
           className="cursor-pointer"
-          onClick={() => { if (phase === 'intro') startCountdown(); else flap(); }}
-          style={{ width: GAME_W, height: GAME_H, display: 'block' }}
+          onClick={() => { unlockAudio(); if (phase === 'intro') startCountdown(); else flap(); }}
+          onTouchStart={(e) => { e.preventDefault(); unlockAudio(); if (phase === 'intro') startCountdown(); else flap(); }}
+          style={{ width: GAME_W, height: GAME_H, display: 'block', touchAction: 'none' }}
         />
         {/* 인트로 오버레이: PLAY NOW 버튼 + 자동 시작 카운트다운 */}
         {phase === 'intro' && (
           <div className="absolute inset-x-0 z-10 flex flex-col items-center gap-3"
             style={{ bottom: 56 }}>
             <button
-              onClick={startCountdown}
+              onClick={() => { unlockAudio(); startCountdown(); }}
               style={{
                 padding: '12px 40px',
                 background: 'linear-gradient(135deg, #00ff88 0%, #00ccff 100%)',
