@@ -153,25 +153,25 @@ export function playEvolutionSound() {
 }
 
 // ===== BACKGROUND MUSIC =====
-// 레트로 8비트 루프 배경음악 (Web Audio API 순수 합성)
+// 몽환적인 ambient 스타일 배경음악 (Web Audio API 순수 합성)
 
 let bgmNodes: { gain: GainNode; oscs: OscillatorNode[] } | null = null;
 let bgmLoopTimer: ReturnType<typeof setTimeout> | null = null;
 
-// 멜로디: C major 펜타토닉 기반 8비트 루프
-const BGM_TEMPO = 0.13; // 한 음표 길이 (초)
+// 멜로디: 느리고 몽환적인 minor 분위기
+const BGM_TEMPO = 0.22; // 느린 템포
 const BGM_NOTES = [
-  // 메인 테마 멜로디
-  523, 659, 784, 659, 523, 659, 880, 784,
-  659, 523, 392, 440, 523, 659, 523, 0,
-  659, 784, 880, 784, 659, 784, 1047, 880,
-  784, 659, 523, 587, 659, 523, 392, 0,
+  // A minor 기반 드리미한 멜로디
+  440, 0, 523, 0, 494, 0, 440, 0,
+  392, 0, 440, 0, 523, 0, 494, 0,
+  440, 0, 392, 0, 349, 0, 392, 0,
+  440, 523, 0, 440, 392, 0, 349, 0,
 ];
 const BGM_BASS = [
-  130, 0, 196, 0, 130, 0, 196, 0,
-  130, 0, 174, 0, 130, 0, 174, 0,
-  165, 0, 220, 0, 165, 0, 220, 0,
-  130, 0, 196, 0, 130, 0, 196, 0,
+  110, 0, 0, 0, 131, 0, 0, 0,
+  110, 0, 0, 0, 98,  0, 0, 0,
+  87,  0, 0, 0, 98,  0, 0, 0,
+  110, 0, 0, 0, 98,  0, 87, 0,
 ];
 
 function scheduleBgmLoop(masterGain: GainNode, startTime: number, volume: number) {
