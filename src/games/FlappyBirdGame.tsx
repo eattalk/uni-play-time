@@ -631,9 +631,9 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       g.elapsedSec += dt;
       g.bgTime += dt;
 
-      // 90초 자동 종료
+      // 60초 → GOAL IN!
       if (g.elapsedSec >= MAX_GAME_SEC) {
-        endGame();
+        endGame(true);
         return;
       }
 
