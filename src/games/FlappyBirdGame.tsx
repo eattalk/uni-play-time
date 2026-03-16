@@ -579,7 +579,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     };
 
     rafId = requestAnimationFrame(loop);
-    return () => { cancelAnimationFrame(rafId); };
+    return () => { cancelAnimationFrame(rafId); clearTimeout(autoStartTimer); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
