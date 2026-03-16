@@ -603,6 +603,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
 
     const endGame = () => {
       g.playing = false;
+      stopBgm();
       playGameOverSound();
       setPhase('gameover');
       // 동점 방지: 밀리초 단위 미세 고유값을 소수점으로 추가
