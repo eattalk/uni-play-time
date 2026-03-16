@@ -859,7 +859,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
               letterSpacing: 1,
               textShadow: '0 0 8px #00ff88',
             }}>
-              {introCountdown > 0 ? `${introCountdown}초 후 자동 시작...` : '시작하는 중...'}
+              {introCountdown > 0 ? `Auto-starting in ${introCountdown}s...` : 'Starting...'}
             </p>
           </div>
         )}
