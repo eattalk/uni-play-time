@@ -844,7 +844,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
           <div className="absolute inset-x-0 z-10 flex flex-col items-center gap-3"
             style={{ bottom: 56 }}>
             <button
-              onClick={startCountdown}
+              onClick={() => { unlockAudio(); startCountdown(); }}
               style={{
                 padding: '12px 40px',
                 background: 'linear-gradient(135deg, #00ff88 0%, #00ccff 100%)',
