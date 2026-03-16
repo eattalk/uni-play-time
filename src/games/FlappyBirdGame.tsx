@@ -901,6 +901,33 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
             </div>
           </div>
         )}
+        {phase === 'goalin' && (
+          <div className="absolute inset-0 flex items-center justify-center z-10"
+            style={{ background: 'radial-gradient(ellipse at center, rgba(0,255,136,0.18) 0%, rgba(0,0,0,0.88) 100%)' }}>
+            <div className="text-center">
+              <div
+                style={{
+                  fontFamily: '"Orbitron", monospace',
+                  fontWeight: 900,
+                  fontSize: 52,
+                  color: '#ffdd00',
+                  textShadow: '0 0 30px #ffdd00, 0 0 60px #ff8800',
+                  letterSpacing: 4,
+                  animation: 'ping 0.6s ease-out 1',
+                }}
+              >
+                GOAL IN!
+              </div>
+              <div style={{ color: '#00ff88', fontFamily: '"Orbitron", monospace', fontSize: 13, marginTop: 8, letterSpacing: 2 }}>
+                60 SECONDS SURVIVED!
+              </div>
+              <p className="text-xl font-display text-neon-yellow mt-4">Score: {gameRef.current.score}</p>
+              <p className="text-sm font-display text-muted-foreground mt-1">
+                {BIRD_STAGES[gameRef.current.stage].name} • Pipes: {gameRef.current.pipesPassed}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
