@@ -601,11 +601,18 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     // Prevent duplicate loops
     if (g.animationId) cancelAnimationFrame(g.animationId);
 
-    const endGame = () => {
+    const endGame = (isGoal = false) => {
       g.playing = false;
       stopBgm();
-      playGameOverSound();
-      setPhase('gameover');
+      if (isGoal) {
+        playEvolutionSound(); // 클리어 효과음
+        spawnParticles(g.bird.x, g.bird.y, '#ffdd00', 40);
+        spawnParticles(g.bird.x, g.bird.y, '#00ff88', 20);
+        setPhase('goalin');
+      } else {
+        playGameOverSound();
+        setPhase('gameover');
+      }
       // 동점 방지: 밀리초 단위 미세 고유값을 소수점으로 추가
       // 예) score=21 → 21.000843 처럼 렌더링에는 정수로 보이지만 순위는 구별 가능
       const uniqueTiebreaker = (performance.now() % 1000) / 1_000_000; // 0.000000 ~ 0.000999
