@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import {
   playFlapSound, playScoreSound, playStarSound,
   playHitSound, playGameOverSound, playCountdownBeep, playEvolutionSound,
-  startBgm, stopBgm, setBgmVolume,
+  startBgm, stopBgm, setBgmVolume, unlockAudio,
 } from './sounds';
 
 interface GameProps {
