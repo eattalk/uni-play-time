@@ -42,6 +42,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<GamePhase>('intro');
   const [countdown, setCountdown] = useState(3);
+  const [introCountdown, setIntroCountdown] = useState(5);
   const gameRef = useRef({
     bird: { x: BIRD_X, y: 250, vy: 0, radius: 13 } as Bird,
     pipes: [] as Pipe[],
