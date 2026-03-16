@@ -10,7 +10,7 @@ interface GameProps {
   maxTime?: number;
 }
 
-type GamePhase = 'intro' | 'countdown' | 'playing' | 'gameover';
+type GamePhase = 'intro' | 'countdown' | 'playing' | 'gameover' | 'goalin';
 
 interface Bird { x: number; y: number; vy: number; radius: number; }
 interface Pipe { x: number; gapY: number; gapHeight: number; width: number; passed: boolean; }
@@ -76,11 +76,11 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     canvas.height = GAME_H;
   }, []);
 
-  const MAX_GAME_SEC = 90; // 90초 후 자동 종료
+  const MAX_GAME_SEC = 60; // 60초 후 GOAL IN!
 
   const getDifficulty = (sec: number) => {
-    // 난이도 가파르게 상승: 90초를 향해 점점 극한으로
-    const t = Math.min(sec / MAX_GAME_SEC, 1); // 0~1 정규화
+    // 60초를 향해 점점 극한으로 가속
+    const t = Math.min(sec / MAX_GAME_SEC, 1);
     const speedPx = 120 + t * t * 580;           // 120 → 700 px/s (제곱 가속)
     const interval = Math.max(0.55, 2.0 - t * 1.5); // 2.0s → 최소 0.55s
     const gap = Math.max(48, 160 - t * t * 120);     // 160px → 최소 48px (제곱 감소)
@@ -601,11 +601,18 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     // Prevent duplicate loops
     if (g.animationId) cancelAnimationFrame(g.animationId);
 
-    const endGame = () => {
+    const endGame = (isGoal = false) => {
       g.playing = false;
       stopBgm();
-      playGameOverSound();
-      setPhase('gameover');
+      if (isGoal) {
+        playEvolutionSound(); // 클리어 효과음
+        spawnParticles(g.bird.x, g.bird.y, '#ffdd00', 40);
+        spawnParticles(g.bird.x, g.bird.y, '#00ff88', 20);
+        setPhase('goalin');
+      } else {
+        playGameOverSound();
+        setPhase('gameover');
+      }
       // 동점 방지: 밀리초 단위 미세 고유값을 소수점으로 추가
       // 예) score=21 → 21.000843 처럼 렌더링에는 정수로 보이지만 순위는 구별 가능
       const uniqueTiebreaker = (performance.now() % 1000) / 1_000_000; // 0.000000 ~ 0.000999
@@ -624,9 +631,9 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       g.elapsedSec += dt;
       g.bgTime += dt;
 
-      // 90초 자동 종료
+      // 60초 → GOAL IN!
       if (g.elapsedSec >= MAX_GAME_SEC) {
-        endGame();
+        endGame(true);
         return;
       }
 
@@ -890,6 +897,33 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
               </p>
               <p className="text-sm font-display text-muted-foreground mt-1">
                 {formatTime(gameRef.current.elapsedSec * 1000)}
+              </p>
+            </div>
+          </div>
+        )}
+        {phase === 'goalin' && (
+          <div className="absolute inset-0 flex items-center justify-center z-10"
+            style={{ background: 'radial-gradient(ellipse at center, rgba(0,255,136,0.18) 0%, rgba(0,0,0,0.88) 100%)' }}>
+            <div className="text-center">
+              <div
+                style={{
+                  fontFamily: '"Orbitron", monospace',
+                  fontWeight: 900,
+                  fontSize: 52,
+                  color: '#ffdd00',
+                  textShadow: '0 0 30px #ffdd00, 0 0 60px #ff8800',
+                  letterSpacing: 4,
+                  animation: 'ping 0.6s ease-out 1',
+                }}
+              >
+                GOAL IN!
+              </div>
+              <div style={{ color: '#00ff88', fontFamily: '"Orbitron", monospace', fontSize: 13, marginTop: 8, letterSpacing: 2 }}>
+                60 SECONDS SURVIVED!
+              </div>
+              <p className="text-xl font-display text-neon-yellow mt-4">Score: {gameRef.current.score}</p>
+              <p className="text-sm font-display text-muted-foreground mt-1">
+                {BIRD_STAGES[gameRef.current.stage].name} • Pipes: {gameRef.current.pipesPassed}
               </p>
             </div>
           </div>
