@@ -5,10 +5,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // 게임별 최대 시간 (초)
 const MAX_TIMES: Record<string, number> = {
   flappy: 60,
+  dino: 40,
 };
 
 // 모든 플레이어가 끝날 때까지 기다리는 버퍼 (초)
-const MAX_TIME_BUFFER = 10;
+const MAX_TIME_BUFFER = 15;
 
 const GamePage = () => {
   const { game_type } = useParams<{ game_type: string }>();
