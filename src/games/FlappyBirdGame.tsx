@@ -613,10 +613,10 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         playGameOverSound();
         setPhase('gameover');
       }
-      // 동점 방지: 밀리초 단위 미세 고유값을 소수점으로 추가
-      // 예) score=21 → 21.000843 처럼 렌더링에는 정수로 보이지만 순위는 구별 가능
-      const uniqueTiebreaker = (performance.now() % 1000) / 1_000_000; // 0.000000 ~ 0.000999
-      const finalScore = parseFloat((g.score + uniqueTiebreaker).toFixed(6));
+      // 동점 방지: 정수 점수에 4자리 랜덤 tiebreaker를 끝에 붙임
+      // 예) score=21 → 210001~219999 (실제 점수는 /10000 으로 복원)
+      const tiebreaker = Math.floor(Math.random() * 9000) + 1000; // 1000~9999
+      const finalScore = g.score * 10000 + tiebreaker;
       setTimeout(() => onGameEnd(finalScore), 1500);
     };
 
