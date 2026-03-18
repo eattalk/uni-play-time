@@ -10,7 +10,7 @@ const GamePage = () => {
   const { game_type } = useParams<{ game_type: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const tableName = searchParams.get('table_name') || 'default';
+  const tableName = searchParams.get('table_name') ?? '';
 
   const maxTime = MAX_TIMES[game_type || ''] || 45;
 
