@@ -6,7 +6,7 @@ const GameResult = () => {
   const tableName = searchParams.get('table_name') || '';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="flex min-h-full items-center justify-center bg-background">
       <div className="text-center p-8">
         <h1 className="text-3xl font-arcade text-neon-green mb-6">RESULTS</h1>
         <div className="bg-card border border-border rounded-xl p-8 glow-green">
