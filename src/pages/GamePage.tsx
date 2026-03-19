@@ -66,7 +66,7 @@ const GamePage = () => {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="flex min-h-full items-center justify-center bg-background">
       <p className="font-arcade text-neon-pink">Unknown game type: {game_type}</p>
     </div>
   );

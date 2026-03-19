@@ -69,6 +69,19 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   const GAME_W = 400;
   const GAME_H = 700;
 
+  const [scale, setScale] = useState(() =>
+    Math.min(
+      (typeof window !== 'undefined' ? window.innerWidth : GAME_W) / GAME_W,
+      (typeof window !== 'undefined' ? window.innerHeight : GAME_H) / GAME_H
+    )
+  );
+
+  useEffect(() => {
+    const update = () => setScale(Math.min(window.innerWidth / GAME_W, window.innerHeight / GAME_H));
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -817,21 +830,21 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
   }, [phase, flap, startCountdown]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen flex items-center justify-center bg-black overflow-hidden">
-      {/* 고정 게임 영역: 폰처럼 400×700, 화면에 맞게 scale */}
-      <div
-        style={{
-          position: 'relative',
-          width: GAME_W,
-          height: GAME_H,
-          maxHeight: '100vh',
-          transform: `scale(${Math.min(
-            (typeof window !== 'undefined' ? window.innerWidth : GAME_W) / GAME_W,
-            (typeof window !== 'undefined' ? window.innerHeight : GAME_H) / GAME_H
-          )})`,
-          transformOrigin: 'center center',
-        }}
-      >
+    <div ref={containerRef}
+      className="relative w-full bg-black"
+      style={{ height: '100dvh', display: 'grid', placeItems: 'center' }}>
+      {/* 스케일된 실제 크기의 래퍼 — 레이아웃 박스 = 시각적 크기 */}
+      <div style={{ width: GAME_W * scale, height: GAME_H * scale, overflow: 'hidden' }}>
+        {/* 고정 400×700 게임 영역, transform으로 확대 */}
+        <div
+          style={{
+            position: 'relative',
+            width: GAME_W,
+            height: GAME_H,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+          }}
+        >
         <canvas
           ref={canvasRef}
           className="cursor-pointer"
@@ -929,6 +942,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
