@@ -6,7 +6,7 @@ import {
 } from './sounds';
 
 interface GameProps {
-  onGameEnd: (score: number, elapsedSec: number) => void;
+  onGameEnd: (score: number) => void;
   maxTime?: number;
 }
 
@@ -630,7 +630,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
       // 예) score=21 → 210001~219999 (실제 점수는 /10000 으로 복원)
       const tiebreaker = Math.floor(Math.random() * 9000) + 1000; // 1000~9999
       const finalScore = g.score * 10000 + tiebreaker;
-      setTimeout(() => onGameEnd(finalScore, g.elapsedSec), 1500);
+      setTimeout(() => onGameEnd(finalScore), 1500);
     };
 
     const loop = (timestamp: number) => {
