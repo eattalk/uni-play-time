@@ -6,7 +6,7 @@ import {
 } from './sounds';
 
 interface GameProps {
-  onGameEnd: (score: number, elapsedSec: number) => void;
+  onGameEnd: (score: number) => void;
   maxTime?: number;
 }
 
