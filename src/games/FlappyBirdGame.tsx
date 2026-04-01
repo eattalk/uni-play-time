@@ -846,8 +846,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         <canvas
           ref={canvasRef}
           className="cursor-pointer"
-          onClick={() => { unlockAudio(); if (phase === 'intro') startCountdown(); else flap(); }}
-          onTouchStart={(e) => { e.preventDefault(); unlockAudio(); if (phase === 'intro') startCountdown(); else flap(); }}
+          onPointerDown={(e) => { e.preventDefault(); unlockAudio(); if (phase === 'intro') startCountdown(); else flap(); }}
           style={{ width: GAME_W, height: GAME_H, display: 'block', touchAction: 'none' }}
         />
         {/* 인트로 오버레이: PLAY NOW 버튼 + 자동 시작 카운트다운 */}
