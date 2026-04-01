@@ -815,7 +815,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
     return () => { cancelAnimationFrame(g.animationId); g.animationId = 0; };
   }, [phase, maxTime, onGameEnd]);
 
-  // Input
+  // Input — keyboard only (touch/pointer handled on canvas via onPointerDown)
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.code === 'ArrowUp') {
@@ -823,10 +823,8 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         if (phase === 'intro') startCountdown(); else flap();
       }
     };
-    const handleTouch = () => { if (phase === 'intro') startCountdown(); else flap(); };
     window.addEventListener('keydown', handleKey);
-    window.addEventListener('touchstart', handleTouch);
-    return () => { window.removeEventListener('keydown', handleKey); window.removeEventListener('touchstart', handleTouch); };
+    return () => { window.removeEventListener('keydown', handleKey); };
   }, [phase, flap, startCountdown]);
 
   return (
@@ -848,8 +846,7 @@ const FlappyBirdGame: React.FC<GameProps> = ({ onGameEnd, maxTime = 60 }) => {
         <canvas
           ref={canvasRef}
           className="cursor-pointer"
-          onClick={() => { unlockAudio(); if (phase === 'intro') startCountdown(); else flap(); }}
-          onTouchStart={(e) => { e.preventDefault(); unlockAudio(); if (phase === 'intro') startCountdown(); else flap(); }}
+          onPointerDown={(e) => { e.preventDefault(); unlockAudio(); if (phase === 'intro') startCountdown(); else flap(); }}
           style={{ width: GAME_W, height: GAME_H, display: 'block', touchAction: 'none' }}
         />
         {/* 인트로 오버레이: PLAY NOW 버튼 + 자동 시작 카운트다운 */}
