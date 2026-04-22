@@ -16,7 +16,7 @@ const GamePage = () => {
   const maxTime = MAX_TIMES[game_type || ''] || 60;
 
   const handleGameEnd = useCallback((score: number) => {
-    navigate(`/webview/games/result?score=${score}&table_name=${tableName}`);
+    navigate(`/webview/games/result?score=${score}&table_name=${tableName}&finished=1`);
   }, [navigate, tableName]);
 
   if (game_type === 'flappy') {
