@@ -18,7 +18,7 @@ const GameResult = () => {
             </p>
           )}
           <div className="mt-6 pt-6 border-t border-border">
-            <p className="text-lg font-arcade text-neon-cyan animate-pulse">
+            <p className="text-2xl font-arcade text-neon-cyan animate-pulse">
               Waiting for all players to finish...
             </p>
           </div>
