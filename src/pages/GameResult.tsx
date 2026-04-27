@@ -17,10 +17,12 @@ const GameResult = () => {
               Table: {tableName}
             </p>
           )}
+          <div className="mt-6 pt-6 border-t border-border">
+            <p className="text-lg font-arcade text-neon-cyan animate-pulse">
+              Waiting for all players to finish...
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-6 font-display">
-          Waiting for all players to finish...
-        </p>
       </div>
     </div>
   );
